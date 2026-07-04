@@ -60,23 +60,32 @@ larger than first written — task mode also pulled in `prompt.ts`, `handoff.ts`
 - [x] `execa` kept (used by doctor/setup/updates/git). Verified: build, lint, and 46/46 tests pass;
       `dev doctor` reports 4 ready harness providers. Notable Decisions entry added to root `AGENTS.md`.
 
-## T2 — Trim catalog to PLAN scope; add ollama & openrouter · **Sonnet**
+## T2 — Trim catalog to PLAN scope; add ollama & openrouter · **Sonnet** ✅ DONE
 
 PLAN.md targets exactly: claude code, codex, antigravity, opencode, openrouter, ollama, cline.
 
-- [ ] In `src/provider-catalog.ts`, delete the entries for `gemini`, `github-copilot`, `cursor`,
-      `devin`, `openhands`, `continue`, `roo-code`.
-- [ ] Add an `ollama` entry following the exact shape of existing entries: local tool, no auth/login,
-      interactive command `ollama run <model>` (make the model configurable via args), install note
-      pointing at https://ollama.com/download, and a limitation note that "rate limits" don't apply —
-      failures are usually the daemon not running (`connection refused`).
-- [ ] Add an `openrouter` entry: it is an API gateway, not a CLI — model it like `cline`
-      (disabled by default) with auth notes saying it is reached through opencode/cline model config
-      with an `OPENROUTER_API_KEY`. Keep the existing Cline↔OpenRouter notes consistent.
-- [ ] Update `test/provider-catalog.test.ts` for the new entry set, and
-      `codepass.config.example.json` if it references removed tools.
-- [ ] Check `src/setup.ts` and `src/doctor.ts` for hardcoded references to removed tools; fix any.
-- [ ] Verify: build/test/lint pass; `pnpm --filter codepass dev providers` lists exactly the 7 tools.
+- [x] Deleted the `gemini`, `github-copilot`, `cursor`, `devin`, `openhands`, `continue`, `roo-code`
+      entries from `src/provider-catalog.ts` (the gemini entry was the only `deprecated`-flagged one;
+      removing it makes that migration path in `mergeCatalogInteractiveProviders` currently unused
+      but still generically correct for any future deprecated entry).
+- [x] Added `ollama`: harness group, `pty_with_bootstrap_input`, `disabledEnabled: false` (parallels
+      `cline` — not everyone has it installed/pulled a model), command `ollama run llama3.2` with the
+      handoff pasted in via bootstrap input (same pattern as `antigravity`). `limitation` documents
+      that it's a plain chat REPL (no autonomous file edits) and that failures are usually the daemon
+      being down (`connection refused`), not a rate limit — feeds directly into T3.
+- [x] Added `openrouter`: guided group, `external_app`, `controllable: false` — it's a model gateway
+      reached through opencode/Cline config, not a launchable CLI, so it's not offered in the harness
+      stack picker (verified live: only `ollama`/`cline`/etc. appear as selectable stack tools).
+- [x] Updated `test/provider-catalog.test.ts` (full catalog list, guided/harness-controllability
+      tests, new ollama-defaults test, removed the dead gemini-deprecation test),
+      `test/doctor.test.ts` and `test/setup.test.ts` (catalog assertions referencing removed tools).
+      `codepass.config.example.json` needed no change (never referenced the removed tools).
+- [x] Checked `src/setup.ts`/`src/doctor.ts` for hardcoded refs to removed tools — none found.
+- [x] Verified: build/lint/test all pass (46/46); `dev providers` lists exactly claude, codex,
+      antigravity, opencode, ollama as selectable harness tools + cline (disabled), matching PLAN.md's
+      7-tool scope; `dev doctor --all` shows `ollama` under the catalog with a live "daemon not
+      running" warning (confirms the doctor version-check path works for it) and `openrouter` as a
+      guided setup-guide row.
 
 ## T3 — Per-provider rate-limit detection · **Opus**
 

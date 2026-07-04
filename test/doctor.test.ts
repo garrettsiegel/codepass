@@ -64,10 +64,9 @@ describe("runDoctor", () => {
     expect(summary.catalogProviderHealth).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ name: "antigravity", group: "harness", controllable: true }),
-        expect.objectContaining({ name: "gemini", group: "guided", controllable: false }),
         expect.objectContaining({ name: "opencode", group: "harness", controllable: true }),
-        expect.objectContaining({ name: "devin", group: "guided", controllable: false }),
-        expect.objectContaining({ name: "github-copilot", group: "guided", integrationType: "cloud_link" })
+        expect.objectContaining({ name: "ollama", group: "harness", controllable: true }),
+        expect.objectContaining({ name: "openrouter", group: "guided", integrationType: "external_app" })
       ])
     );
   });

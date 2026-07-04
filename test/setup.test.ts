@@ -53,8 +53,8 @@ describe("setup helpers", () => {
     expect(state.catalogStatuses).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ name: "antigravity", group: "harness" }),
-        expect.objectContaining({ name: "gemini", group: "guided", controllable: false }),
-        expect.objectContaining({ name: "github-copilot", group: "guided", controllable: false })
+        expect.objectContaining({ name: "ollama", group: "harness", controllable: true }),
+        expect.objectContaining({ name: "openrouter", group: "guided", controllable: false })
       ])
     );
   });

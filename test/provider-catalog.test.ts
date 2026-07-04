@@ -9,7 +9,7 @@ import {
 } from "../src/provider-catalog.js";
 
 describe("provider catalog", () => {
-  it("contains popular terminal and guided integrations", () => {
+  it("contains the V1 provider set: terminal harness tools plus guided OpenRouter", () => {
     const names = getProviderCatalog().map((entry) => entry.name);
 
     expect(names).toEqual(
@@ -18,14 +18,9 @@ describe("provider catalog", () => {
         "codex",
         "cline",
         "antigravity",
-        "gemini",
         "opencode",
-        "github-copilot",
-        "cursor",
-        "devin",
-        "openhands",
-        "continue",
-        "roo-code"
+        "ollama",
+        "openrouter"
       ])
     );
   });
@@ -43,16 +38,30 @@ describe("provider catalog", () => {
     expect(defaultOrder).toEqual(expect.arrayContaining(["claude", "codex", "antigravity", "opencode"]));
   });
 
-  it("keeps guided/cloud tools out of the auto-switch chain", () => {
-    const devin = getCatalogEntry("devin");
-    const cursor = getCatalogEntry("cursor");
+  it("keeps guided tools out of the auto-switch chain", () => {
+    const openrouter = getCatalogEntry("openrouter");
 
-    expect(devin?.controllable).toBe(false);
-    expect(cursor?.controllable).toBe(false);
+    expect(openrouter?.group).toBe("guided");
+    expect(openrouter?.controllable).toBe(false);
+    expect(getDefaultInteractiveProviders().find((provider) => provider.name === "openrouter")).toBeUndefined();
     expect(isHarnessControllable({
-      integrationType: "cloud_link",
+      integrationType: "external_app",
       controllable: false
     })).toBe(false);
+  });
+
+  it("adds ollama as a disabled-by-default local harness provider", () => {
+    const ollama = getCatalogEntry("ollama");
+
+    expect(ollama).toMatchObject({
+      group: "harness",
+      controllable: true,
+      defaultEnabled: false,
+      integrationType: "pty_with_bootstrap_input"
+    });
+    expect(getDefaultInteractiveProviders().find((provider) => provider.name === "ollama")).toMatchObject({
+      enabled: false
+    });
   });
 
   it("renders catalog providers with prompt args and bootstrap inputs", () => {
@@ -82,15 +91,4 @@ describe("provider catalog", () => {
     });
   });
 
-  it("keeps legacy Gemini out of default harness providers", () => {
-    const gemini = getCatalogEntry("gemini");
-
-    expect(gemini).toMatchObject({
-      group: "guided",
-      controllable: false,
-      deprecated: true,
-      replacement: "antigravity"
-    });
-    expect(getDefaultInteractiveProviders().find((provider) => provider.name === "gemini")).toBeUndefined();
-  });
 });
