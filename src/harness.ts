@@ -26,6 +26,7 @@ import {
 import { ensurePtyHelperExecutable } from "./pty-helper.js";
 import { writeSessionLog } from "./session-log.js";
 import { chooseSwitchProvider, type SwitchSelector } from "./switch-menu.js";
+import { renderCommercialBreak } from "./terminal-ui.js";
 import { RollingTranscript } from "./transcript.js";
 
 export interface PtyProcess {
@@ -561,7 +562,7 @@ export const runHarness = async (
       break;
     }
 
-    options.output?.write(chalk.yellow(`\nCodePass commercial break: switching from ${provider.label} to ${selected.provider.label}...\n`));
+    options.output?.write(renderCommercialBreak(provider.label, selected.provider.label, attempt.errorType));
     handoffPrompt = buildProviderHandoffPrompt(
       handoffPath,
       provider.label,

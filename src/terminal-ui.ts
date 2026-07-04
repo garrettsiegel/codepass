@@ -1,7 +1,7 @@
 import process from "node:process";
 import chalk from "chalk";
 import stripAnsi from "strip-ansi";
-import type { InteractiveProviderConfig, ProviderIntegrationType } from "./types.js";
+import type { AgentErrorType, InteractiveProviderConfig, ProviderIntegrationType } from "./types.js";
 import { describeProviderChain } from "./interactive-provider.js";
 
 export interface ToolStatusView {
@@ -192,6 +192,34 @@ export const renderSetupSaved = (configPath: string, chain: string): string => [
   chain,
   ""
 ].join("\n");
+
+// Short, varied copy for the switch interstitial, keyed by the failure reason
+// that triggered it. Falls back to a generic message for reasons without a
+// specific line (nonzero_exit, unknown, command_not_found).
+const COMMERCIAL_BREAK_COPY: Partial<Record<AgentErrorType, string>> = {
+  rate_limit: "hit its usage limit",
+  quota_exceeded: "ran out of quota",
+  auth_error: "needs you to sign in again",
+  timeout: "went quiet for too long",
+  manual_switch: "was switched out by you"
+};
+
+export const renderCommercialBreak = (
+  fromLabel: string,
+  toLabel: string,
+  reason: AgentErrorType
+): string => {
+  const situation = COMMERCIAL_BREAK_COPY[reason] ?? "hit a snag";
+
+  return [
+    "",
+    box("☕ Commercial break", [
+      `${fromLabel} ${situation}. Moving to ${toLabel}...`,
+      "Handoff ready — pick up right where you left off."
+    ]),
+    ""
+  ].join("\n");
+};
 
 export const renderHarnessStart = (providers: InteractiveProviderConfig[]): string => [
   "",

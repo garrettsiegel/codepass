@@ -1,4 +1,4 @@
-import { select } from "@inquirer/prompts";
+import { isCancel, select } from "@clack/prompts";
 import type { InteractiveProviderConfig } from "./types.js";
 
 export interface SwitchChoice {
@@ -22,11 +22,15 @@ export const chooseSwitchProvider: SwitchSelector = async (choices, reason) => {
 
   const selectedName = await select({
     message: `CodePass noticed ${reason}. Which tool should continue?`,
-    choices: choices.map((choice) => ({
-      name: choice.provider.label,
+    options: choices.map((choice) => ({
+      label: choice.provider.label,
       value: choice.provider.name
     }))
   });
+
+  if (isCancel(selectedName)) {
+    return undefined;
+  }
 
   return choices.find((choice) => choice.provider.name === selectedName);
 };

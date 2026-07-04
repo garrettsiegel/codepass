@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import chalk from "chalk";
 import { Command } from "commander";
-import { confirm, select } from "@inquirer/prompts";
+import { cancel, confirm, isCancel, select } from "@clack/prompts";
 import ora from "ora";
 import { initConfig, loadConfig } from "./config.js";
 import { runDoctor } from "./doctor.js";
@@ -81,13 +81,18 @@ const resolveLaunchConfig = async (
 
   const choice = await select({
     message: "Start with this chain?",
-    choices: [
-      { name: "Yes, launch", value: "launch" },
-      { name: "Reconfigure (choose tools/order)", value: "reconfigure" },
-      { name: "Start fresh (ignore saved preferences)", value: "fresh" }
+    options: [
+      { label: "Yes, launch", value: "launch" },
+      { label: "Reconfigure (choose tools/order)", value: "reconfigure" },
+      { label: "Start fresh (ignore saved preferences)", value: "fresh" }
     ],
-    default: "launch"
+    initialValue: "launch"
   });
+
+  if (isCancel(choice)) {
+    cancel("CodePass canceled.");
+    throw new Error("CodePass canceled.");
+  }
 
   if (choice === "launch") {
     return loadedConfig;
@@ -298,10 +303,11 @@ program
     try {
       const cwd = options.cwd ?? process.cwd();
       const { config } = await loadConfig(cwd, options.config);
-      const shouldClear = options.yes ?? await confirm({
+      const confirmation = options.yes ?? await confirm({
         message: "Delete local CodePass handoffs and harness session logs?",
-        default: false
+        initialValue: false
       });
+      const shouldClear = !isCancel(confirmation) && confirmation;
 
       if (!shouldClear) {
         console.log("CodePass clear cancelled.");

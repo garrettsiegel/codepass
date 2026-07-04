@@ -121,35 +121,50 @@ on top of it without weakening that guard.
 - [x] Verify: build/lint/test all green. Updated the CLAUDE.md detection gotcha to describe the two
       detection layers.
 
-## T4 — Single prompt library: migrate @inquirer → clack · **Sonnet**
+## T4 — Single prompt library: migrate @inquirer → clack · **Sonnet** ✅ DONE
 
-PLAN.md says the CLI should use clack. Both `@clack/prompts` and `@inquirer/prompts` are installed;
-inquirer is used in `src/switch-menu.ts` and `src/cli.ts`.
+PLAN.md says the CLI should use clack. Both `@clack/prompts` and `@inquirer/prompts` were installed;
+inquirer was used in `src/switch-menu.ts` and `src/cli.ts`.
 
-- [ ] Rewrite the provider select in `src/switch-menu.ts` using `@clack/prompts` `select`
-      (handle cancel via `isCancel`, matching how `src/setup.ts` already does it — copy that idiom).
-- [ ] Replace the inquirer `confirm` usage in `src/cli.ts` (the `clear` command's `--yes` bypass path)
-      with clack `confirm`.
-- [ ] Remove `@inquirer/prompts` from `package.json`; run `~/Library/pnpm/pnpm install` to update the
-      lockfile.
-- [ ] Update `test/prompt.test.ts` / any test that stubs inquirer.
-- [ ] Verify: build/test/lint pass; `pnpm --filter codepass dev clear` prompts and cancels cleanly;
-      manual switch (Ctrl+]) shows the clack menu.
+- [x] Rewrote the provider select in `src/switch-menu.ts` using `@clack/prompts` `select`
+      (`select({ options: [{ label, value }] })`, not inquirer's `choices`/`name` shape). A cancel
+      (Ctrl+C during the switch menu) now resolves to `undefined` — harness.ts already treats that as
+      "stop, no switch" gracefully, no new error path needed.
+- [x] Replaced the inquirer `select`/`confirm` in `src/cli.ts`: the "Start with this chain?" prompt
+      (`resolveLaunchConfig`) now uses clack `select` + `initialValue`, with `isCancel` → `cancel()` +
+      throw (same idiom as `setup.ts`'s `unwrapPrompt`). The `clear` command's confirm uses clack
+      `confirm` + `initialValue`, treating a cancel as "don't clear" (safe default for a destructive op).
+- [x] Removed `@inquirer/prompts` from `package.json`; ran `pnpm install` to update the lockfile.
+- [x] No test stubbed inquirer directly (task-mode's `prompt.test.ts` was already deleted in T1;
+      `harness.test.ts` always injects its own `switchSelector`, bypassing the real menu). Added
+      `test/switch-menu.test.ts` for `chooseSwitchProvider`'s deterministic 0/1-choice fast paths
+      (no clack interaction needed, so no new mocking infra introduced into this test suite).
+- [x] Verify: build/lint pass; 55 tests pass; `dev clear --yes` works end-to-end; confirmed (existing,
+      pre-existing-for-clack-too) that piping non-TTY stdin into an unconfirmed prompt exits rather
+      than hangs, consistent with the setup wizard's existing clack prompts.
 
-## T5 — "Commercial break" switch interstitial · **Sonnet**
+## T5 — "Commercial break" switch interstitial · **Sonnet** ✅ DONE
 
 PLAN.md wants a short, fun "commercial break" message while CodePass swaps tools. Pure UX copy —
 no logic changes.
 
-- [ ] Add a small interstitial renderer in `src/terminal-ui.ts` (keep the file ≤250 LOC): a boxed
-      2–3 line message shown between provider exit and next provider launch, e.g.
-      `☕ Quick break! claude hit its limit — moving you into codex, handoff in hand…`
-      Vary copy by reason: rate limit vs. manual switch. Reuse the existing chalk styling in that file.
-- [ ] Call it from the switch path in `src/harness.ts` (where the handoff banner currently prints).
-- [ ] Keep it to one short paragraph — no delays/sleeps, no animation; the user is mid-flow.
-- [ ] Add/extend a `test/terminal-ui.test.ts` case for the new renderer.
-- [ ] Verify: build/test/lint pass; trigger a manual switch and confirm the message shows once,
-      before the new tool's intro prompt.
+- [x] Added `renderCommercialBreak(fromLabel, toLabel, reason)` to `src/terminal-ui.ts` (reused the
+      existing `box()` helper — same chrome as `renderHarnessStart`). Copy varies by reason via a
+      `COMMERCIAL_BREAK_COPY` lookup (`rate_limit`, `quota_exceeded`, `auth_error`, `timeout`,
+      `manual_switch`), falling back to a generic "hit a snag" line for `nonzero_exit`/`unknown`/
+      `command_not_found`. File is 232 LOC, still under the 250 budget.
+- [x] Wired it into `src/harness.ts` at the exact spot the old one-line "commercial break" message
+      printed, replacing it — passes `attempt.errorType` as the reason.
+- [x] One short paragraph, two lines, no delays/animation. Caught and fixed a real layout bug during
+      manual testing: my first draft's second line was long enough to overflow `box()`'s width (it
+      doesn't wrap), breaking the border — tightened the copy rather than adding wrapping logic
+      (`box()` not wrapping is a pre-existing characteristic shared by `renderHarnessStart`, out of
+      scope to fix here).
+- [x] Added `test/terminal-ui.test.ts` cases: rate_limit vs. manual_switch produce different text, and
+      an unmapped reason falls back to generic copy.
+- [x] Verify: build/lint pass; 57 tests pass; ran a real end-to-end `runHarness` with a fake PTY
+      emitting Claude's actual `"5-hour limit reached"` banner (T3's pattern) — confirmed the box
+      renders once, cleanly, immediately before Codex's intro prompt.
 
 ## T6 — LOC-limit refactor (≤250 LOC per file) · **Opus for harness.ts; Sonnet for the rest**
 

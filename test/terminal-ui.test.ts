@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import stripAnsi from "strip-ansi";
-import { renderToolCheck } from "../src/terminal-ui.js";
+import { renderCommercialBreak, renderToolCheck } from "../src/terminal-ui.js";
 
 describe("terminal UI", () => {
   it("groups provider checks into friendly setup sections", () => {
@@ -49,5 +49,24 @@ describe("terminal UI", () => {
     expect(output).toContain("ADD LATER");
     expect(output).toContain("CLOUD");
     expect(output).not.toContain("command not found");
+  });
+});
+
+describe("renderCommercialBreak", () => {
+  it("varies its copy by rate limit vs. manual switch", () => {
+    const rateLimit = stripAnsi(renderCommercialBreak("Claude Code", "Codex", "rate_limit"));
+    const manualSwitch = stripAnsi(renderCommercialBreak("Claude Code", "Codex", "manual_switch"));
+
+    expect(rateLimit).toContain("Claude Code");
+    expect(rateLimit).toContain("Codex");
+    expect(rateLimit).toContain("hit its usage limit");
+    expect(manualSwitch).toContain("was switched out by you");
+    expect(rateLimit).not.toContain("was switched out by you");
+  });
+
+  it("falls back to generic copy for reasons without specific text", () => {
+    const output = stripAnsi(renderCommercialBreak("Claude Code", "Codex", "nonzero_exit"));
+
+    expect(output).toContain("hit a snag");
   });
 });
