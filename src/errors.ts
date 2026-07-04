@@ -62,9 +62,11 @@ export const matchLimitPattern = (
 /**
  * Returns the first provider-specific limit banner from `patterns` that appears
  * in `text`. These come from a tool's catalog entry (`limitPatterns`) — exact,
- * tool-emitted banners the maintainer has vouched for, so unlike the generic
- * patterns above they are trusted on a direct match. They always mean the
- * provider is rate/usage limited, so the caller classifies them as `rate_limit`.
+ * tool-emitted banners the maintainer has vouched for. The caller
+ * (`detectLiveFailure`) still requires the match to land on a status-like line
+ * (strict prose guard) before switching, so a banner quoted in an agent's prose
+ * doesn't trip a handoff. A confirmed match means the provider is rate/usage
+ * limited, so the caller classifies it as `rate_limit`.
  */
 export const matchProviderLimitPattern = (
   text: string,

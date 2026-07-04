@@ -117,7 +117,7 @@ export const PROVIDER_CATALOG: ProviderCatalogEntry[] = [
     auth: "Configure Cline providers/models, including OpenRouter, before enabling it.",
     homepage: "https://cline.bot/",
     summary: "Model-flexible coding agent available as CLI, IDE extension, and SDK.",
-    limitation: "Disabled by default. Verify the installed `cline` CLI's run/prompt flags and configure an OpenRouter model before enabling it as a harness provider."
+    limitation: "Disabled by default. Verify the installed `cline` CLI's run/prompt flags and configure an OpenRouter model before enabling it as a harness provider. Note: Cline takes the prompt as a command-line argument, so the handoff prompt is briefly visible to local `ps`; prefer a tool that accepts the prompt on stdin if that matters to you."
   },
   {
     name: "antigravity",
@@ -160,7 +160,7 @@ export const PROVIDER_CATALOG: ProviderCatalogEntry[] = [
     ],
     homepage: "https://github.com/anomalyco/opencode",
     summary: "Open-source terminal TUI/headless coding agent with provider management.",
-    limitation: "opencode routes to whichever model provider you configure, so its limit banner varies by provider — CodePass uses generic limit detection here rather than a fixed `limitPatterns` list."
+    limitation: "opencode routes to whichever model provider you configure, so its limit banner varies by provider — CodePass uses generic limit detection here rather than a fixed `limitPatterns` list. It also requires the prompt via `--prompt`, so the handoff prompt is briefly visible to local `ps` while opencode runs."
   },
   {
     name: "ollama",

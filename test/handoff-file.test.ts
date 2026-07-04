@@ -1,4 +1,4 @@
-import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, stat, unlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -54,6 +54,43 @@ describe("handoff file helpers", () => {
     const removed = await clearHandoffArtifacts(cwd, config);
     expect(removed.length).toBeGreaterThan(0);
     await expect(stat(livePath)).rejects.toThrow();
+  });
+
+  it("removes only the handoff file when handoffPath resolves to the cwd", async () => {
+    const cwd = await makeTempDir();
+    const config = defaultConfig();
+    // A natural-looking but dangerous value: dirname resolves to the cwd itself.
+    config.harness.handoffPath = "handoff.md";
+    const livePath = getHandoffPaths(cwd, config).livePath;
+    await writeFile(livePath, "# handoff", "utf8");
+    // A user file that must survive a clear.
+    const userFile = path.join(cwd, "important.txt");
+    await writeFile(userFile, "keep me", "utf8");
+
+    const removed = await clearHandoffArtifacts(cwd, config);
+
+    // The cwd (and the user's file) must still exist; only the handoff file goes.
+    await expect(stat(userFile)).resolves.toBeDefined();
+    await expect(stat(cwd)).resolves.toBeDefined();
+    await expect(stat(livePath)).rejects.toThrow();
+    expect(removed).toContain(cwd);
+  });
+
+  it("refuses to recursively delete an absolute sessions dir pointing at home", async () => {
+    const cwd = await makeTempDir();
+    const config = defaultConfig();
+    config.logs.sessionsDir = os.homedir();
+    const marker = path.join(os.homedir(), `.codepass-guard-marker-${Date.now()}-${Math.random()}`);
+    await writeFile(marker, "keep", "utf8");
+
+    try {
+      await clearHandoffArtifacts(cwd, config);
+      // Home directory and its contents must be untouched.
+      await expect(stat(os.homedir())).resolves.toBeDefined();
+      await expect(stat(marker)).resolves.toBeDefined();
+    } finally {
+      await unlink(marker).catch(() => {});
+    }
   });
 
   it("builds session and provider handoff prompts with the handoff path", () => {

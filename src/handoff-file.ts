@@ -1,7 +1,11 @@
-import { mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rm, stat, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { AgentErrorType, InteractiveProviderConfig, CodePassConfig } from "./types.js";
-import { formatGitContext, getChangedFiles, getGitContext } from "./git.js";
+import { formatGitContext, getChangedFiles, getGitContext, getGitRoot } from "./git.js";
+import { isSafeToRecursivelyDelete, resolveFromCwd } from "./paths.js";
+import { ensureArtifactsIgnored } from "./artifacts.js";
+import { DEFAULT_CODEPASS_DIR } from "./config.js";
+import { redactSecrets } from "./redact.js";
 
 export interface HandoffPaths {
   livePath: string;
@@ -18,12 +22,9 @@ export interface HandoffCheckpoint {
   note?: string;
 }
 
-const resolveConfiguredPath = (cwd: string, configuredPath: string): string =>
-  path.isAbsolute(configuredPath) ? configuredPath : path.join(cwd, configuredPath);
-
 export const getHandoffPaths = (cwd: string, config: CodePassConfig): HandoffPaths => ({
-  livePath: resolveConfiguredPath(cwd, config.harness.handoffPath),
-  archiveDir: resolveConfiguredPath(cwd, config.harness.handoffArchiveDir)
+  livePath: resolveFromCwd(cwd, config.harness.handoffPath),
+  archiveDir: resolveFromCwd(cwd, config.harness.handoffArchiveDir)
 });
 
 export const buildSessionPrompt = (
@@ -73,6 +74,7 @@ export const createHandoffFile = async (
   const changedFiles = await getChangedFiles(cwd);
   await mkdir(path.dirname(paths.livePath), { recursive: true });
   await mkdir(paths.archiveDir, { recursive: true });
+  await ensureArtifactsIgnored(path.join(cwd, DEFAULT_CODEPASS_DIR));
   const content = [
     "# CodePass Handoff",
     "",
@@ -114,7 +116,7 @@ export const createHandoffFile = async (
     "Repository snapshot:",
     "",
     "```txt",
-    formatGitContext(gitContext),
+    redactSecrets(formatGitContext(gitContext)),
     "```",
     ""
   ].join("\n");
@@ -155,7 +157,7 @@ export const appendHandoffCheckpoint = async (
     "Repository snapshot:",
     "",
     "```txt",
-    formatGitContext(gitContext),
+    redactSecrets(formatGitContext(gitContext)),
     "```",
     checkpoint.transcriptExcerpt
       ? [
@@ -163,7 +165,7 @@ export const appendHandoffCheckpoint = async (
           "Recent transcript excerpt:",
           "",
           "```txt",
-          checkpoint.transcriptExcerpt,
+          redactSecrets(checkpoint.transcriptExcerpt),
           "```"
         ].join("\n")
       : undefined,
@@ -215,29 +217,79 @@ export const summarizeHandoffFile = async (
   }
 };
 
+// Deletes only files matching `extension` (plus an optional exact file) inside
+// `dir`, leaving the directory itself in place. Used as the safe fallback when a
+// misconfigured artifact path resolves somewhere `rm -rf` must not touch.
+const removeKnownFiles = async (
+  dir: string,
+  extension: string,
+  extraFile?: string
+): Promise<boolean> => {
+  let removedAny = false;
+
+  if (extraFile) {
+    try {
+      await unlink(extraFile);
+      removedAny = true;
+    } catch {
+      // Nothing to remove.
+    }
+  }
+
+  try {
+    const entries = await readdir(dir);
+    for (const entry of entries) {
+      if (entry.endsWith(extension)) {
+        await unlink(path.join(dir, entry)).catch(() => {});
+        removedAny = true;
+      }
+    }
+  } catch {
+    // Directory missing — nothing to remove.
+  }
+
+  return removedAny;
+};
+
 export const clearHandoffArtifacts = async (
   cwd: string,
   config: CodePassConfig
 ): Promise<string[]> => {
   const paths = getHandoffPaths(cwd, config);
+  const sessionsDir = resolveFromCwd(cwd, config.logs.sessionsDir);
+  const gitRoot = await getGitRoot(cwd);
   const removed: string[] = [];
-  const candidates = [
-    path.dirname(paths.livePath),
-    paths.archiveDir,
-    path.isAbsolute(config.logs.sessionsDir)
-      ? config.logs.sessionsDir
-      : path.join(cwd, config.logs.sessionsDir)
+
+  // dir → the exact file / extension we may delete if the dir itself is unsafe
+  // to recurse into.
+  const candidates: Array<{ dir: string; extension: string; extraFile?: string }> = [
+    { dir: path.dirname(paths.livePath), extension: ".md", extraFile: paths.livePath },
+    { dir: paths.archiveDir, extension: ".md" },
+    { dir: sessionsDir, extension: ".json" }
   ];
 
   for (const candidate of candidates) {
-    try {
-      const entries = await readdir(candidate);
-      await rm(candidate, { recursive: true, force: true });
-      if (entries.length > 0) {
-        removed.push(candidate);
+    if (isSafeToRecursivelyDelete(candidate.dir, cwd, { gitRoot: gitRoot ?? undefined })) {
+      try {
+        const entries = await readdir(candidate.dir);
+        await rm(candidate.dir, { recursive: true, force: true });
+        if (entries.length > 0) {
+          removed.push(candidate.dir);
+        }
+      } catch {
+        // Nothing to clear.
       }
-    } catch {
-      // Nothing to clear.
+      continue;
+    }
+
+    // Unsafe to recurse (e.g. handoffPath dirname resolved to the cwd or home).
+    // Delete only the specific known artifact files and keep the directory.
+    console.warn(
+      `CodePass: ${candidate.dir} is not a dedicated .codepass directory; ` +
+        `removing only known artifact files instead of the whole directory.`
+    );
+    if (await removeKnownFiles(candidate.dir, candidate.extension, candidate.extraFile)) {
+      removed.push(candidate.dir);
     }
   }
 

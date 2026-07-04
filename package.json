@@ -45,6 +45,7 @@
     "dev": "tsx src/cli.ts",
     "lint": "tsc --noEmit",
     "prepublishOnly": "pnpm build",
+    "release": "bash scripts/release.sh",
     "start": "node dist/cli.js",
     "test": "vitest run"
   },

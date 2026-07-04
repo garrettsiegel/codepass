@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { renderInteractiveLaunch } from "../src/interactive-provider.js";
+import { formatCommandEcho, renderInteractiveLaunch } from "../src/interactive-provider.js";
 
 describe("renderInteractiveLaunch", () => {
   it("renders first-launch args without a handoff prompt", () => {
@@ -72,5 +72,27 @@ describe("renderInteractiveLaunch", () => {
       args: [],
       bootstrapInput: "read the handoff and continue\n"
     });
+  });
+});
+
+describe("formatCommandEcho", () => {
+  it("shows the command alone when there are no args", () => {
+    expect(formatCommandEcho("claude", [])).toBe("claude");
+  });
+
+  it("shows short args inline", () => {
+    expect(formatCommandEcho("opencode", ["/tmp/project", "--prompt", "go"])).toBe(
+      "opencode /tmp/project --prompt go"
+    );
+  });
+
+  it("collapses a long prompt argument to a count marker", () => {
+    const longPrompt = "read the handoff file at /tmp/project/.codepass/current/handoff.md and continue the work exactly where the previous tool left off";
+    expect(formatCommandEcho("cline", [longPrompt])).toBe("cline [+1 arg]");
+  });
+
+  it("pluralizes the marker for multiple long args", () => {
+    const filler = "x".repeat(80);
+    expect(formatCommandEcho("tool", [filler, filler])).toBe("tool [+2 args]");
   });
 });

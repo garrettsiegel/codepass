@@ -7,12 +7,14 @@ import {
   note,
   outro
 } from "@clack/prompts";
+import process from "node:process";
 import chalk from "chalk";
-import { defaultConfig, saveConfig } from "./config.js";
+import { defaultConfig, loadConfig, saveConfig } from "./config.js";
 import { isHarnessControllable } from "./provider-catalog.js";
 import { buildStackOptions, chooseProviderOrder, renderCatalogPreview, unwrapPrompt } from "./setup-prompts.js";
 import { renderProviderOrderSummary } from "./terminal-ui.js";
 import { getSetupState } from "./tool-status.js";
+import { assertConfigTrusted } from "./trust.js";
 import type { InteractiveProviderConfig, CodePassConfig } from "./types.js";
 
 export { getSetupState, type ToolStatus } from "./tool-status.js";
@@ -45,6 +47,13 @@ export const applyProviderOrder = (
 export const runSetupWizard = async (
   options: SetupOptions
 ): Promise<{ config: CodePassConfig; configPath: string }> => {
+  // Gate untrusted config-defined commands before getSetupState probes them.
+  const loaded = await loadConfig(options.cwd, options.configPath);
+  await assertConfigTrusted({
+    config: loaded.config,
+    configPath: loaded.path,
+    interactive: Boolean(process.stdin.isTTY)
+  });
   const state = await getSetupState(options.cwd, options.configPath);
   const startingConfig = options.reset || !state.exists ? defaultConfig() : state.config;
 

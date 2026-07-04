@@ -4,6 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { defaultConfig } from "../src/config.js";
 import { runDoctor } from "../src/doctor.js";
+import { trustConfigFile } from "../src/trust.js";
 
 const makeTempDir = async (): Promise<string> => {
   const dir = path.join(os.tmpdir(), `codepass-doctor-${Date.now()}-${Math.random()}`);
@@ -37,11 +38,13 @@ describe("runDoctor", () => {
         integrationType: "pty"
       }
     ];
-    await writeFile(
-      path.join(cwd, "codepass.config.json"),
-      `${JSON.stringify(config, null, 2)}\n`,
-      "utf8"
-    );
+    const configPath = path.join(cwd, "codepass.config.json");
+    await writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, "utf8");
+    // These are custom (non-catalog) provider commands, so the trust gate would
+    // refuse them non-interactively — pre-trust the config for this test.
+    const home = await makeTempDir();
+    process.env.CODEPASS_HOME = home;
+    await trustConfigFile(configPath, home);
 
     const summary = await runDoctor(cwd);
 

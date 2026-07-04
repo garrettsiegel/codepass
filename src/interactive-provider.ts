@@ -42,6 +42,21 @@ export const renderInteractiveLaunch = (
   };
 };
 
+// Renders the launch command for the terminal banner. Long arg lists (typically
+// the injected handoff/session prompt, which names the repo path and switch
+// reason) are collapsed to a `[+N args]` marker so the prompt isn't dumped into
+// the user's scrollback where other local users could read it.
+const COMMAND_ECHO_ARG_LIMIT = 120;
+
+export const formatCommandEcho = (command: string, args: string[]): string => {
+  const joined = args.join(" ");
+  if (joined.length <= COMMAND_ECHO_ARG_LIMIT) {
+    return joined.length > 0 ? `${command} ${joined}` : command;
+  }
+
+  return `${command} [+${args.length} arg${args.length === 1 ? "" : "s"}]`;
+};
+
 export const getInteractiveProviderMap = (
   config: CodePassConfig
 ): Map<string, InteractiveProviderConfig> =>

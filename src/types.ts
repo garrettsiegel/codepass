@@ -34,8 +34,9 @@ export interface InteractiveProviderConfig {
   handoffBootstrapInput?: string;
   controllable?: boolean;
   fallbackOn?: AgentErrorType[];
-  // Exact, tool-emitted rate/usage-limit banners for this provider. Trusted on a
-  // direct match during live detection (see failure-detection.ts:detectLiveFailure).
+  // Exact, tool-emitted rate/usage-limit banners for this provider. Matched during
+  // live detection when they head a status-like line (see
+  // failure-detection.ts:detectLiveFailure).
   limitPatterns?: string[];
 }
 

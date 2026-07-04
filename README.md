@@ -68,6 +68,11 @@ handoff file:
 The active tool is instructed to keep this file updated as it works — CodePass doesn't make any
 extra AI calls to do this, so it costs you nothing beyond what the tool would already use.
 
+> **Note:** Handoff files and session logs under `.codepass/` capture terminal output and git
+> diffs, which can contain secrets (API keys, `.env` changes). Treat them as sensitive. CodePass
+> writes a `.codepass/.gitignore` so these artifacts stay out of your repo, and best-effort
+> redacts common credential formats before persisting them — but don't share them blindly.
+
 ## How It Works
 
 1. CodePass loads `codepass.config.json` (or built-in defaults if none exists yet).
@@ -133,22 +138,22 @@ handoff prompt directly into the terminal after it starts.
 
 ## Tool Updates
 
-By default, CodePass checks your selected tools each time it starts and runs their verified native
-updater when one is available (e.g. `claude update`, `codex update`, `opencode upgrade`). It never
-guesses an installer for a tool without a verified update command — those tools just show up as
-"add later" with setup guidance instead.
+By default, CodePass checks your selected tools each time it starts and **asks before** running
+their verified native updater when one is available (e.g. `claude update`, `codex update`,
+`opencode upgrade`). It never guesses an installer for a tool without a verified update command —
+those tools just show up as "add later" with setup guidance instead.
 
 Advanced users can change this in `codepass.config.json`:
 
 ```json
 "updates": {
   "checkOnStart": true,
-  "mode": "always",
+  "mode": "prompt",
   "includeDisabledProviders": false
 }
 ```
 
-Use `"mode": "prompt"` to ask before running an update, or `"mode": "off"` to skip the check
+Use `"mode": "always"` to run updates without asking, or `"mode": "off"` to skip the check
 entirely.
 
 ## Cline And OpenRouter
@@ -200,6 +205,18 @@ pnpm dev -- doctor    # pass args through to a specific command
 ```
 
 Before committing, make sure `pnpm build`, `pnpm test`, and `pnpm lint` all pass.
+
+### Releasing
+
+`pnpm release <patch|minor|major|<semver>>` runs build/test/lint, bumps the version, commits and
+tags it, pushes `main` + tags to origin, and publishes to npm — in one step. It refuses to run
+from a branch other than `main`, with a dirty working tree, or out of sync with `origin/main`, and
+prompts for confirmation before it pushes or publishes (pass `--yes` to skip the prompt). Preview
+what would happen, including the packed npm contents, without any git or npm mutation:
+
+```sh
+pnpm release patch --dry-run
+```
 
 See [CLAUDE.md](./CLAUDE.md) for the architecture guide (module layout, conventions, known
 gotchas) and [GAMEPLAN.md](./GAMEPLAN.md) for the project's original brief, design vision, and the

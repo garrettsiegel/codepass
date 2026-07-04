@@ -1,0 +1,74 @@
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { describe, expect, it } from "vitest";
+import { defaultConfig } from "../src/config.js";
+import { readLatestSessionLog, resolveSessionsDir, writeSessionLog } from "../src/session-log.js";
+import type { HarnessSessionLog } from "../src/types.js";
+
+const makeTempDir = async (): Promise<string> => {
+  const dir = path.join(os.tmpdir(), `codepass-session-log-${Date.now()}-${Math.random()}`);
+  await mkdir(dir, { recursive: true });
+  return dir;
+};
+
+const sampleLog = (): HarnessSessionLog => ({
+  cwd: "/tmp/project",
+  startedAt: "2026-07-04T10:00:00.000Z",
+  endedAt: "2026-07-04T10:05:00.000Z",
+  providerOrder: ["claude", "codex"],
+  attempts: [
+    {
+      provider: "claude",
+      label: "Claude Code",
+      command: "claude",
+      args: [],
+      startedAt: "2026-07-04T10:00:00.000Z",
+      endedAt: "2026-07-04T10:03:00.000Z",
+      exitCode: 1,
+      errorType: "rate_limit",
+      transcriptExcerpt: "exported ANTHROPIC_API_KEY=sk-ant-api03-AbCdEf0123456789ghIJKlMnOp done"
+    }
+  ],
+  finalProvider: "codex",
+  success: true,
+  changedFiles: ["src/app.ts"]
+});
+
+describe("session log", () => {
+  it("writes and reads back a valid session log", async () => {
+    const cwd = await makeTempDir();
+    const config = defaultConfig();
+    const logPath = await writeSessionLog(cwd, config, sampleLog());
+    expect(logPath.startsWith(resolveSessionsDir(cwd, config))).toBe(true);
+
+    const latest = await readLatestSessionLog(cwd, config);
+    expect(latest?.finalProvider).toBe("codex");
+    expect(latest?.attempts[0]?.provider).toBe("claude");
+  });
+
+  it("redacts secrets in transcript excerpts before persisting", async () => {
+    const cwd = await makeTempDir();
+    const config = defaultConfig();
+    const logPath = await writeSessionLog(cwd, config, sampleLog());
+
+    const rawFile = await readFile(logPath, "utf8");
+    expect(rawFile).not.toContain("sk-ant-api03-AbCdEf0123456789ghIJKlMnOp");
+    expect(rawFile).toContain("[REDACTED:anthropic-key]");
+  });
+
+  it("returns undefined for a corrupt or mistyped session log", async () => {
+    const cwd = await makeTempDir();
+    const config = defaultConfig();
+    const sessionsDir = resolveSessionsDir(cwd, config);
+    await mkdir(sessionsDir, { recursive: true });
+    // Valid JSON but wrong shape (attempts should be an array).
+    await writeFile(
+      path.join(sessionsDir, "2026-07-04T10-00-00-000Z.json"),
+      JSON.stringify({ cwd: "/tmp", attempts: "nope" }),
+      "utf8"
+    );
+
+    expect(await readLatestSessionLog(cwd, config)).toBeUndefined();
+  });
+});

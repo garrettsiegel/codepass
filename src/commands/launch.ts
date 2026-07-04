@@ -5,6 +5,7 @@ import { runHarness } from "../harness.js";
 import { describeProviderChain, getEnabledInteractiveProviders } from "../interactive-provider.js";
 import { getSetupState, runSetupWizard } from "../setup.js";
 import { renderHarnessStart } from "../terminal-ui.js";
+import { assertConfigTrusted } from "../trust.js";
 import { ensureProviderFreshness } from "../updates.js";
 import type { CliOptions } from "../cli-options.js";
 import type { CodePassConfig } from "../types.js";
@@ -61,6 +62,12 @@ export const runLaunchCommand = async (options: CliOptions): Promise<void> => {
 
   try {
     const loaded = await loadConfig(cwd, options.config);
+    // Gate untrusted config-defined commands before anything probes or spawns them.
+    await assertConfigTrusted({
+      config: loaded.config,
+      configPath: loaded.path,
+      interactive: Boolean(process.stdin.isTTY)
+    });
     const config = await resolveLaunchConfig(loaded.config, cwd, options.config);
     const providers = getEnabledInteractiveProviders(config);
     const setupState = await getSetupState(cwd, options.config);

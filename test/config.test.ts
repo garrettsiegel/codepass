@@ -21,7 +21,7 @@ describe("config", () => {
     );
     expect(loaded.config.updates).toMatchObject({
       checkOnStart: true,
-      mode: "always"
+      mode: "prompt"
     });
   });
 
@@ -105,5 +105,17 @@ describe("config", () => {
     await expect(stat(path.join(cwd, ".codepass", "handoffs"))).resolves.toMatchObject({
       isDirectory: expect.any(Function)
     });
+  });
+
+  it("writes a .codepass/.gitignore marker on init and is idempotent", async () => {
+    const cwd = await makeRealTempDir();
+    const markerPath = path.join(cwd, ".codepass", ".gitignore");
+
+    await initConfig(cwd);
+    expect(await readFile(markerPath, "utf8")).toBe("*\n");
+
+    // Re-running must not duplicate or change the marker.
+    await initConfig(cwd);
+    expect(await readFile(markerPath, "utf8")).toBe("*\n");
   });
 });

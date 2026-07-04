@@ -70,10 +70,12 @@ Other supporting modules:
   agent that merely *discusses* a rate limit. Detection has two layers: the generic families in
   `errors.ts` (`matchLimitPattern`), trusted only on a *status-like line* (prose guard), and a
   provider's curated `limitPatterns` (defined per-tool in `provider-catalog-data.ts`, matched via
-  `matchProviderLimitPattern` in `errors.ts`), which are exact tool banners trusted on a direct
-  match — so keep those specific enough that they can't appear in an agent's prose. Changing either,
-  or the detection scope, can cause unwanted mid-session switches — test both "prose mentions a
-  limit → no switch" and "real limit banner → switch".
+  `matchProviderLimitPattern` in `errors.ts`), which are exact tool banners. Both layers require a
+  status-like line before switching — provider banners use the *strict* variant of
+  `isStatusLikeLine` (the banner must head its line or follow an error indicator), so a banner
+  quoted in an agent's prose won't force a handoff. Keep banners specific anyway. Changing either
+  layer, or the detection scope, can cause unwanted mid-session switches — test both "prose mentions
+  a limit → no switch" and "real limit banner → switch".
 - **PTY vs. pipe fallback.** When `node-pty` can't load, the harness falls back to a piped
   `child_process` (`pty-factory.ts`) that lacks TTY semantics (no resize, degraded interactivity).
   Guard PTY-only calls (e.g. `resize`) for the fallback.

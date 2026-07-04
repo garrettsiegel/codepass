@@ -1,6 +1,7 @@
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
+import { ensureArtifactsIgnored } from "./artifacts.js";
 import {
   getDefaultInteractiveProviders,
   getDefaultProviderOrder,
@@ -74,11 +75,11 @@ export const codepassConfigSchema = z.object({
   }),
   updates: z.object({
     checkOnStart: z.boolean().default(true),
-    mode: updateModeSchema.default("always"),
+    mode: updateModeSchema.default("prompt"),
     includeDisabledProviders: z.boolean().default(false)
   }).default({
     checkOnStart: true,
-    mode: "always",
+    mode: "prompt",
     includeDisabledProviders: false
   }),
   harness: z.object({
@@ -103,6 +104,20 @@ export const codepassConfigSchema = z.object({
     providers: getDefaultInteractiveProviders()
   })
 });
+
+/**
+ * Writes the `.codepass/.gitignore` marker so handoff files and session logs
+ * (which contain terminal output and git diffs) never get committed to the
+ * user's repo. Prints a one-time notice when it first creates the marker.
+ */
+export const ensureCodepassIgnored = async (cwd: string): Promise<void> => {
+  const created = await ensureArtifactsIgnored(path.join(cwd, DEFAULT_CODEPASS_DIR));
+  if (created) {
+    console.log(
+      "CodePass: added .codepass/.gitignore so local handoff and session artifacts stay out of git."
+    );
+  }
+};
 
 const normalizeConfig = (config: CodePassConfig): CodePassConfig => codepassConfigSchema.parse({
   ...config,
@@ -154,6 +169,7 @@ export const initConfig = async (
   await mkdir(path.join(cwd, DEFAULT_SESSIONS_DIR), { recursive: true });
   await mkdir(path.dirname(path.join(cwd, DEFAULT_HANDOFF_PATH)), { recursive: true });
   await mkdir(path.join(cwd, DEFAULT_HANDOFF_ARCHIVE_DIR), { recursive: true });
+  await ensureCodepassIgnored(cwd);
 
   try {
     await access(resolvedPath);
@@ -180,6 +196,7 @@ export const saveConfig = async (
   await mkdir(path.join(cwd, DEFAULT_SESSIONS_DIR), { recursive: true });
   await mkdir(path.dirname(path.join(cwd, DEFAULT_HANDOFF_PATH)), { recursive: true });
   await mkdir(path.join(cwd, DEFAULT_HANDOFF_ARCHIVE_DIR), { recursive: true });
+  await ensureCodepassIgnored(cwd);
   await writeFile(
     resolvedPath,
     `${JSON.stringify(codepassConfigSchema.parse(config), null, 2)}\n`,

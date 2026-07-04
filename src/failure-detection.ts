@@ -63,7 +63,16 @@ const stripIgnored = (text: string, ignore: Array<string | undefined>): string =
 // line — either the line leads with the pattern itself, or with a known error
 // indicator. This is what stops CodePass from switching when an agent merely
 // *mentions* a rate limit in ordinary prose.
-const isStatusLikeLine = (line: string, pattern: string): boolean => {
+//
+// `strict` omits the loose "line contains a status word anywhere" branch. Use it
+// for provider `limitPatterns` (exact tool banners): a real banner heads its own
+// line, so requiring that avoids switching on an agent's prose that merely quotes
+// the banner alongside a word like "reached" or "hit".
+const isStatusLikeLine = (
+  line: string,
+  pattern: string,
+  options: { strict?: boolean } = {}
+): boolean => {
   const trimmed = line.trim().toLowerCase();
 
   if (!trimmed.includes(pattern)) {
@@ -89,8 +98,8 @@ const isStatusLikeLine = (line: string, pattern: string): boolean => {
   }
 
   // A line with a limit pattern AND a status word (e.g. "usage limit reached")
-  // is a definitive status event, not prose discussion.
-  if (STATUS_WORDS.some((word) => trimmed.includes(word))) {
+  // is a definitive status event, not prose discussion. Skipped in strict mode.
+  if (!options.strict && STATUS_WORDS.some((word) => trimmed.includes(word))) {
     return true;
   }
 
@@ -98,9 +107,9 @@ const isStatusLikeLine = (line: string, pattern: string): boolean => {
 };
 
 // Live (still-running) detection. Scoped to the transcript tail with the prompts
-// stripped. A generic pattern is only trusted on a status-like line (prose guard);
-// a provider's curated `limitPatterns` are exact tool banners, trusted on a direct
-// match so distinctive banners that don't read as status lines still switch.
+// stripped. Both the generic patterns and a provider's curated `limitPatterns`
+// (exact tool banners) must appear on a status-like line — the banner path uses
+// the stricter guard, so an agent merely quoting a banner in prose won't switch.
 export const detectLiveFailure = (
   tail: string,
   provider: InteractiveProviderConfig,
@@ -111,7 +120,12 @@ export const detectLiveFailure = (
   const fallbackOn = provider.fallbackOn ?? config.fallbackOn;
 
   for (const line of cleaned.split("\n")) {
-    if (fallbackOn.includes("rate_limit") && matchProviderLimitPattern(line, provider.limitPatterns)) {
+    const banner = matchProviderLimitPattern(line, provider.limitPatterns);
+    if (
+      fallbackOn.includes("rate_limit") &&
+      banner &&
+      isStatusLikeLine(line, banner.toLowerCase(), { strict: true })
+    ) {
       return "rate_limit";
     }
 

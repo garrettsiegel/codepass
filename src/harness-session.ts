@@ -2,7 +2,7 @@ import process from "node:process";
 import chalk from "chalk";
 import type { AgentErrorType, HarnessAttemptLog, InteractiveProviderConfig, CodePassConfig } from "./types.js";
 import { detectExitFailure, detectLiveFailure, getManualSwitchSequence } from "./failure-detection.js";
-import { renderInteractiveLaunch } from "./interactive-provider.js";
+import { formatCommandEcho, renderInteractiveLaunch } from "./interactive-provider.js";
 import type { PtyFactory, PtyProcess } from "./pty-factory.js";
 import { RollingTranscript } from "./transcript.js";
 
@@ -33,7 +33,7 @@ export const waitForProvider = async (
   let settled = false;
 
   output?.write(chalk.cyan(`\nCodePass starting ${provider.label}...\n`));
-  output?.write(chalk.gray(`Command: ${launch.command} ${launch.args.join(" ")}\n\n`));
+  output?.write(chalk.gray(`Command: ${formatCommandEcho(launch.command, launch.args)}\n\n`));
 
   let child: PtyProcess;
 
