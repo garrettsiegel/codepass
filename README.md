@@ -1,6 +1,6 @@
 # CodePass
 
-![CodePass](https://raw.githubusercontent.com/garrettsiegel/codepass/main/public/Gemini_Generated_Image_dg5cwbdg5cwbdg5c.png)
+![CodePass automatically hands off from a rate-limited Claude Code to Codex, mid-task](https://raw.githubusercontent.com/garrettsiegel/codepass/main/public/codepass-demo.gif)
 
 **CodePass is a terminal harness that lets you switch between AI coding agents — Claude Code,
 Codex, Antigravity, opencode, Cline, Ollama — without losing your place.**

@@ -1,0 +1,33 @@
+{
+  "updates": {
+    "checkOnStart": false,
+    "mode": "off"
+  },
+  "harness": {
+    "setupComplete": true,
+    "providerOrder": ["demo-a", "demo-b"],
+    "providers": [
+      {
+        "name": "demo-a",
+        "label": "Claude Code",
+        "enabled": true,
+        "command": "bash",
+        "args": ["agent.sh", "claude"],
+        "handoffArgs": ["agent.sh", "claude"],
+        "integrationType": "pty",
+        "controllable": true,
+        "limitPatterns": ["Claude usage limit reached"]
+      },
+      {
+        "name": "demo-b",
+        "label": "Codex",
+        "enabled": true,
+        "command": "bash",
+        "args": ["agent.sh", "codex"],
+        "handoffArgs": ["agent.sh", "codex"],
+        "integrationType": "pty",
+        "controllable": true
+      }
+    ]
+  }
+}
