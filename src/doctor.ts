@@ -18,8 +18,6 @@ export interface DoctorSummary {
   usingDefaultConfig: boolean;
   gitRepo: boolean;
   changedFiles: string[];
-  runsDir: string;
-  logsDir: string;
   sessionsDir: string;
   interactiveProviderHealth: ProviderHealth[];
   catalogProviderHealth: ProviderHealth[];
@@ -30,24 +28,16 @@ export interface DoctorOptions {
   includeAllCatalog?: boolean;
 }
 
-const resolveConfigDirs = (
+const resolveSessionsDir = (
   cwd: string,
   config: CodePassConfig,
   configPath?: string
-): { runsDir: string; logsDir: string; sessionsDir: string } => {
+): string => {
   const baseDir = configPath ? path.dirname(configPath) : cwd;
 
-  return {
-    runsDir: path.isAbsolute(config.logs.runsDir)
-      ? config.logs.runsDir
-      : path.join(baseDir, config.logs.runsDir),
-    logsDir: path.isAbsolute(config.logs.logsDir)
-      ? config.logs.logsDir
-      : path.join(baseDir, config.logs.logsDir),
-    sessionsDir: path.isAbsolute(config.logs.sessionsDir)
-      ? config.logs.sessionsDir
-      : path.join(baseDir, config.logs.sessionsDir)
-  };
+  return path.isAbsolute(config.logs.sessionsDir)
+    ? config.logs.sessionsDir
+    : path.join(baseDir, config.logs.sessionsDir);
 };
 
 export const runDoctor = async (
@@ -74,7 +64,6 @@ export const runDoctor = async (
   const controllableInteractiveProviderHealth = interactiveProviderHealth.filter(
     (provider) => provider.controllable !== false
   );
-  const dirs = resolveConfigDirs(cwd, loaded.config, loaded.path);
 
   return {
     cwd,
@@ -82,9 +71,7 @@ export const runDoctor = async (
     usingDefaultConfig: !loaded.path,
     gitRepo: gitContext.isGitRepo,
     changedFiles: gitContext.changedFiles,
-    runsDir: dirs.runsDir,
-    logsDir: dirs.logsDir,
-    sessionsDir: dirs.sessionsDir,
+    sessionsDir: resolveSessionsDir(cwd, loaded.config, loaded.path),
     interactiveProviderHealth,
     catalogProviderHealth,
     readyInteractiveProviderCount: controllableInteractiveProviderHealth.filter(

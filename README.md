@@ -1,171 +1,140 @@
 # CodePass
 
-CodePass is an interactive terminal harness for coding agents.
+**CodePass is a terminal harness that lets you switch between AI coding agents — Claude Code,
+Codex, Antigravity, opencode, Cline, Ollama — without losing your place.**
 
-The goal is simple:
+If you've ever been deep in a task in Claude Code and hit your 5-hour rate limit, or realized
+partway through that Codex would handle the next part better, you know the problem: switching
+tools means starting over. The new tool has no idea what you were doing.
+
+CodePass fixes that. It runs your coding tool inside one terminal session, watches for rate
+limits and failures, and when it's time to switch, it automatically writes a shared "handoff"
+file — your goal, what's changed, what's blocked, what's next — and hands it to the next tool so
+you can pick up exactly where you left off.
 
 ```sh
 codepass
 ```
 
-CodePass walks you through setup, checks which tools are available, lets you choose your fallback order, starts the first coding tool, and can hand off to the next one when it sees a recognizable limit or failure.
-
-Example chain:
+That's the whole interface. CodePass walks you through setup the first time, then starts your
+first tool. If it hits a limit, CodePass shows a quick "commercial break" message and switches for
+you.
 
 ```txt
 Claude Code -> Codex -> Google Antigravity -> opencode -> Cline with OpenRouter later
 ```
 
+## Who this is for
+
+Anyone who codes with an AI terminal agent and has more than one tool available — whether that's
+because you hit rate limits, want to compare tools, or just like having a fallback chain instead
+of being stuck when one tool goes down. No programming experience is required to use CodePass
+itself; you only need one of the supported coding tools already set up.
+
+## Install
+
+```sh
+npm install -g codepass
+codepass
+```
+
+Or run it without installing anything:
+
+```sh
+npx codepass
+```
+
+On first run, CodePass starts a guided setup wizard: it detects which tools you have installed and
+lets you pick which ones to use and in what order.
+
 ## The Important Limitation
 
-CodePass cannot copy a provider's private live chat/session state into another provider unless that provider exposes a supported API for it.
+CodePass cannot copy a tool's private live chat/session state into another tool unless that tool
+exposes a supported API for it — no coding agent currently does this reliably. So instead of
+pretending to transfer your conversation, CodePass preserves *practical* continuity with a live
+handoff file:
 
-CodePass preserves practical continuity with a live handoff file instead:
-
-- `.codepass/current/handoff.md`
+- `.codepass/current/handoff.md` — the shared file every tool reads and updates
 - current working directory
 - git status and diff
 - changed files
 - project instructions like `AGENTS.md`
 - terminal transcript excerpts
-- failure reason
-- generated handoff prompt
+- the reason the switch happened
+- a generated handoff prompt for the next tool
 
-## Quick Start In This Monorepo
+The active tool is instructed to keep this file updated as it works — CodePass doesn't make any
+extra AI calls to do this, so it costs you nothing beyond what the tool would already use.
 
-From the monorepo root:
+## How It Works
 
-```sh
-~/Library/pnpm/pnpm install
-~/Library/pnpm/pnpm codepass:build
-~/Library/pnpm/pnpm codepass:doctor
-~/Library/pnpm/pnpm codepass
-```
-
-On first run, CodePass starts a guided setup wizard.
-
-## Main Commands
-
-Start the interactive harness:
-
-```sh
-~/Library/pnpm/pnpm codepass
-```
-
-Show the live handoff file:
-
-```sh
-~/Library/pnpm/pnpm codepass -- handoff
-```
-
-Clear local handoff/session artifacts:
-
-```sh
-~/Library/pnpm/pnpm codepass -- clear
-```
-
-Run setup again:
-
-```sh
-~/Library/pnpm/pnpm codepass -- setup
-```
-
-Check setup health:
-
-```sh
-~/Library/pnpm/pnpm codepass:doctor
-~/Library/pnpm/pnpm codepass -- doctor --all
-```
-
-Edit provider order:
-
-```sh
-~/Library/pnpm/pnpm codepass -- providers
-~/Library/pnpm/pnpm codepass -- providers --all
-```
-
-Show the latest harness session summary:
-
-```sh
-~/Library/pnpm/pnpm codepass -- session
-```
-
-Use the older task-based fallback mode:
-
-```sh
-~/Library/pnpm/pnpm codepass -- run "fix the failing tests"
-```
-
-Task-mode shorthand still works when you pass a task:
-
-```sh
-~/Library/pnpm/pnpm codepass -- "fix the failing tests"
-```
-
-## How The Harness Works
-
-1. CodePass loads `codepass.config.json`.
-2. If setup is incomplete, CodePass asks which providers you want. If setup is already complete, CodePass shows your saved chain and asks whether to launch it, reconfigure it, or start fresh (this prompt is skipped when stdin is not a TTY, e.g. piped input — it just reuses your saved chain).
-3. CodePass launches the first enabled provider in a pseudo-terminal.
+1. CodePass loads `codepass.config.json` (or built-in defaults if none exists yet).
+2. First run: CodePass asks which tools you want, in what order. Later runs: CodePass shows your
+   saved chain and asks whether to launch it, reconfigure it, or start fresh.
+3. CodePass launches the first enabled tool in a real pseudo-terminal — it looks and feels exactly
+   like running that tool directly.
 4. CodePass creates `.codepass/current/handoff.md` and tells the active tool to keep it updated.
-5. CodePass mirrors your terminal input/output so the provider still feels native.
-6. CodePass keeps a rolling transcript buffer as backup.
-7. If output looks like a rate limit, quota issue, auth failure, or eligible process failure, CodePass pauses that provider.
-8. CodePass appends a checkpoint to the handoff file.
-9. CodePass asks which tool should continue, then launches it with the handoff file prompt.
-10. CodePass writes a session summary in `.codepass/sessions/` and archives the handoff in `.codepass/handoffs/`.
+5. Your terminal input/output is mirrored straight through, so the tool stays fully interactive.
+6. If output looks like a rate limit, quota issue, auth failure, or another recognizable failure,
+   CodePass pauses that tool.
+7. CodePass appends a checkpoint to the handoff file, shows a short "commercial break" message
+   explaining what happened, and launches the next tool with the handoff already loaded.
+8. CodePass writes a session summary and archives the handoff for the record.
 
-Manual switch:
+You can also switch manually at any time:
 
 ```txt
 Ctrl+]
 ```
 
-Press this while a tool is running to ask CodePass to switch tools.
+Press this while a tool is running to ask CodePass to switch tools right now — useful if you just
+want a different tool's take on something, not only when a limit hits.
 
-## Popular Integrations
+## Provider Catalog
 
-CodePass now has a built-in provider catalog with two kinds of integrations:
+CodePass has a built-in catalog of tools with two kinds of integrations:
 
-- True harness providers: terminal tools CodePass can launch, watch, hand off to, and switch between.
-- Guided integrations: popular IDE/cloud tools CodePass can explain or detect, but not control until they expose a supported local CLI, API, ACP bridge, or extension bridge.
+- **Harness providers** — terminal tools CodePass can launch, watch, hand off to, and switch
+  between directly.
+- **Guided integrations** — tools reached through another provider's own configuration rather than
+  launched by CodePass itself.
 
-See [POPULAR_TOOLS.md](./POPULAR_TOOLS.md) for the full catalog, setup notes, and current limitations.
+| Tool | Kind | Enabled by default | Notes |
+|---|---|---|---|
+| Claude Code (`claude`) | Harness | Yes | Bootstrapped with the session prompt. |
+| Codex (`codex`) | Harness | Yes | Bootstrapped with the session prompt. |
+| Google Antigravity (`agy`) | Harness | Yes | Bootstrapped with the session prompt via its `agy` TUI. |
+| opencode (`opencode`) | Harness | Yes | Launched with `--prompt "{{sessionPrompt}}"`. |
+| Cline (`cline`) | Harness | No | Enable once installed and its model/provider is configured. |
+| Ollama (`ollama`) | Harness | No | Runs a local model (`ollama run llama3.2` by default) — enable once you've pulled a model. It's a plain chat REPL, not an autonomous agent. |
+| OpenRouter | Guided | No | Not a standalone CLI — configure it as a model provider inside opencode or Cline. |
 
-## Default Harness Providers
+Run `codepass doctor --all` to see the full catalog with install/setup notes for tools you haven't
+enabled yet.
 
-Interactive harness defaults:
+Some tools don't take a clean prompt argument. For those, CodePass launches the tool and types the
+handoff prompt directly into the terminal after it starts.
 
-1. Claude Code: `claude`
-2. Codex: `codex`
-3. Google Antigravity: `antigravity`, bootstrapped with the session prompt
-4. opencode: `opencode "{{cwd}}" --prompt "{{sessionPrompt}}"`
-5. Cline: disabled until installed/configured
+## Commands
 
-Add-later terminal providers:
-
-- Aider
-- Goose
-- Kiro CLI
-- Amp
-
-Handoff launches:
-
-```txt
-claude "{{handoffPrompt}}"
-codex "{{handoffPrompt}}"
-antigravity
-opencode "{{cwd}}" --prompt "{{handoffPrompt}}"
-cline "{{handoffPrompt}}"
-```
-
-Some tools do not have a clean prompt argument. For those, CodePass launches the tool and types the handoff prompt into the PTY automatically through `bootstrapInput`.
+| Command | What it does |
+|---|---|
+| `codepass` | Start (or resume) the interactive harness. |
+| `codepass init` | Create the config file and `.codepass/` folders without running the wizard. |
+| `codepass setup` | Re-run the guided setup wizard. |
+| `codepass providers` | Edit your tool order (add `--all` to browse the full catalog). |
+| `codepass doctor` | Check your config, tool availability, and git context (add `--all` for the full catalog). |
+| `codepass handoff` | Show the current handoff file's path and a preview. |
+| `codepass session` | Show a summary of the most recent harness session. |
+| `codepass clear` | Delete local handoff and session files (add `--yes` to skip the confirmation). |
+| `codepass --help` | See every command and option. |
 
 ## Tool Updates
 
-By default, `codepass` checks selected tools each time it starts and runs verified native updater commands when available, such as `claude update`, `codex update`, and `opencode upgrade`.
-
-CodePass does not guess unsafe installers for tools without verified update commands. Missing tools stay as “add later” with setup guidance.
+By default, CodePass checks your selected tools each time it starts and runs their verified native
+updater when one is available (e.g. `claude update`, `codex update`, `opencode upgrade`). It never
+guesses an installer for a tool without a verified update command — those tools just show up as
+"add later" with setup guidance instead.
 
 Advanced users can change this in `codepass.config.json`:
 
@@ -177,48 +146,59 @@ Advanced users can change this in `codepass.config.json`:
 }
 ```
 
-Use `"mode": "prompt"` to ask first, or `"mode": "off"` to disable startup update checks.
+Use `"mode": "prompt"` to ask before running an update, or `"mode": "off"` to skip the check
+entirely.
 
 ## Cline And OpenRouter
 
-Cline is part of the config model but disabled by default because it is not currently installed on PATH here.
+Cline is part of the catalog but disabled by default. Once it's installed and its CLI flags are
+verified on your machine, enable it in setup or `codepass.config.json`.
 
-Once Cline is installed and its CLI flags are verified, enable it in setup or `codepass.config.json`, then configure its provider/model args for OpenRouter/DeepSeek.
+OpenRouter isn't a CLI CodePass launches directly — it's a model gateway. Configure it as a model
+provider inside Cline or opencode's own provider settings (`opencode providers`), then enable that
+tool in CodePass as usual.
 
-## Logs
+## Where Things Are Saved
 
-Task-mode logs:
-
-```txt
-.codepass/runs/
-```
-
-Harness session logs:
+Everything CodePass writes lives under `.codepass/` in your project's working directory:
 
 ```txt
-.codepass/sessions/
+.codepass/current/handoff.md   the live handoff file for the current session
+.codepass/handoffs/            archived handoffs from past sessions
+.codepass/sessions/            session summaries (start/end time, tools tried, changed files)
 ```
 
-Live and archived handoffs:
-
-```txt
-.codepass/current/handoff.md
-.codepass/handoffs/
-```
+Run `codepass clear` any time you want to wipe these.
 
 ## Safety Defaults
 
 - CodePass never pushes changes.
 - CodePass never commits by default.
-- CodePass explains that exact private session transfer is not guaranteed.
-- CodePass uses the handoff file as the shared continuity layer.
-- Provider commands are configured explicitly.
-- Handoff prompts are generated locally from repo context and transcript excerpts.
+- CodePass is upfront that exact private session transfer isn't possible — the handoff file is
+  the shared continuity layer instead.
+- Tool commands are configured explicitly; nothing is guessed or auto-installed without asking.
+- Handoff prompts are generated entirely locally from your repo context and terminal transcript —
+  no extra network calls.
 
-## Development Checks
+## Building From Source / Contributing
+
+CodePass is a small TypeScript CLI (Node 20+). To work on it directly:
 
 ```sh
-~/Library/pnpm/pnpm --filter codepass build
-~/Library/pnpm/pnpm --filter codepass test
-~/Library/pnpm/pnpm --filter codepass lint
+git clone https://github.com/garrettsiegel/codepass.git
+cd codepass
+pnpm install
+pnpm build
+pnpm test
 ```
+
+```sh
+pnpm dev              # run the CLI directly with tsx, no build step needed
+pnpm dev -- doctor    # pass args through to a specific command
+```
+
+Before committing, make sure `pnpm build`, `pnpm test`, and `pnpm lint` all pass.
+
+See [CLAUDE.md](./CLAUDE.md) for the architecture guide (module layout, conventions, known
+gotchas) and [GAMEPLAN.md](./GAMEPLAN.md) for the project's original brief, design vision, and the
+full V1 execution history.

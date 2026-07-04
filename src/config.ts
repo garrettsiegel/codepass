@@ -10,8 +10,6 @@ import type { AgentErrorType, CodePassConfig } from "./types.js";
 
 export const DEFAULT_CONFIG_FILE = "codepass.config.json";
 export const DEFAULT_CODEPASS_DIR = ".codepass";
-export const DEFAULT_RUNS_DIR = ".codepass/runs";
-export const DEFAULT_LOGS_DIR = ".codepass/logs";
 export const DEFAULT_SESSIONS_DIR = ".codepass/sessions";
 export const DEFAULT_HANDOFF_PATH = ".codepass/current/handoff.md";
 export const DEFAULT_HANDOFF_ARCHIVE_DIR = ".codepass/handoffs";
@@ -70,12 +68,8 @@ export const codepassConfigSchema = z.object({
     maxDiffChars: 20_000
   }),
   logs: z.object({
-    runsDir: z.string().default(DEFAULT_RUNS_DIR),
-    logsDir: z.string().default(DEFAULT_LOGS_DIR),
     sessionsDir: z.string().default(DEFAULT_SESSIONS_DIR)
   }).default({
-    runsDir: DEFAULT_RUNS_DIR,
-    logsDir: DEFAULT_LOGS_DIR,
     sessionsDir: DEFAULT_SESSIONS_DIR
   }),
   updates: z.object({
@@ -157,8 +151,6 @@ export const initConfig = async (
   let createdConfig = false;
 
   await mkdir(path.join(cwd, DEFAULT_CODEPASS_DIR), { recursive: true });
-  await mkdir(path.join(cwd, DEFAULT_RUNS_DIR), { recursive: true });
-  await mkdir(path.join(cwd, DEFAULT_LOGS_DIR), { recursive: true });
   await mkdir(path.join(cwd, DEFAULT_SESSIONS_DIR), { recursive: true });
   await mkdir(path.dirname(path.join(cwd, DEFAULT_HANDOFF_PATH)), { recursive: true });
   await mkdir(path.join(cwd, DEFAULT_HANDOFF_ARCHIVE_DIR), { recursive: true });
@@ -185,8 +177,6 @@ export const saveConfig = async (
   const resolvedPath = resolveConfigPath(cwd, configPath);
   await mkdir(path.dirname(resolvedPath), { recursive: true });
   await mkdir(path.join(cwd, DEFAULT_CODEPASS_DIR), { recursive: true });
-  await mkdir(path.join(cwd, DEFAULT_RUNS_DIR), { recursive: true });
-  await mkdir(path.join(cwd, DEFAULT_LOGS_DIR), { recursive: true });
   await mkdir(path.join(cwd, DEFAULT_SESSIONS_DIR), { recursive: true });
   await mkdir(path.dirname(path.join(cwd, DEFAULT_HANDOFF_PATH)), { recursive: true });
   await mkdir(path.join(cwd, DEFAULT_HANDOFF_ARCHIVE_DIR), { recursive: true });

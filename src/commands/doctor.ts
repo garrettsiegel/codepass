@@ -22,8 +22,6 @@ export const runDoctorCommand = async (options: CliOptions): Promise<void> => {
     );
     console.log(chalk.bold("Git repo:"), summary.gitRepo ? "yes" : "no");
     console.log(chalk.bold("Changed files:"), summary.changedFiles.length);
-    console.log(chalk.bold("Runs dir:"), summary.runsDir);
-    console.log(chalk.bold("Logs dir:"), summary.logsDir);
     console.log(chalk.bold("Sessions dir:"), summary.sessionsDir);
 
     console.log("");

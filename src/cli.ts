@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { Command } from "commander";
 import { runClearCommand } from "./commands/clear.js";
 import { runDoctorCommand } from "./commands/doctor.js";
@@ -15,12 +18,18 @@ import { resolveCommandOptions, type CliOptions } from "./cli-options.js";
 const normalizeArgv = (argv: string[]): string[] =>
   argv[2] === "--" ? [argv[0] ?? "node", argv[1] ?? "codepass", ...argv.slice(3)] : argv;
 
+// Read the version from package.json at runtime so `--version` can never drift
+// from the published package (this file compiles to dist/cli.js, one level
+// below the package root where package.json lives).
+const packageJsonPath = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "package.json");
+const { version } = JSON.parse(readFileSync(packageJsonPath, "utf8")) as { version: string };
+
 const program = new Command();
 
 program
   .name("codepass")
   .description("Interactive agent harness for Claude Code, Codex, Antigravity, opencode, Cline, and more.")
-  .version("0.0.1");
+  .version(version);
 
 program
   .option("-c, --config <path>", "Config file path")

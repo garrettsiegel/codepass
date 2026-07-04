@@ -11,8 +11,6 @@
     "maxDiffChars": 20000
   },
   "logs": {
-    "runsDir": ".codepass/runs",
-    "logsDir": ".codepass/logs",
     "sessionsDir": ".codepass/sessions"
   },
   "updates": {

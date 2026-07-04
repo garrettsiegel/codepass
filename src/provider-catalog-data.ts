@@ -21,7 +21,6 @@ export interface ProviderCatalogEntry {
   handoffArgs?: string[];
   bootstrapInput?: string;
   handoffBootstrapInput?: string;
-  taskArgs?: string[];
   // Exact rate/usage-limit banners this tool prints when it blocks. Kept specific
   // enough that they cannot appear in an agent's ordinary prose — see T3 notes in
   // src/TASK.md and failure-detection.ts:detectLiveFailure.
@@ -56,7 +55,6 @@ export const PROVIDER_CATALOG: ProviderCatalogEntry[] = [
     handoffArgs: [],
     bootstrapInput: DEFAULT_BOOTSTRAP,
     handoffBootstrapInput: DEFAULT_HANDOFF_BOOTSTRAP,
-    taskArgs: ["-p", "--permission-mode", "acceptEdits", "{{prompt}}"],
     limitPatterns: [
       "5-hour limit reached",
       "upgrade to increase your usage limit",
@@ -87,16 +85,6 @@ export const PROVIDER_CATALOG: ProviderCatalogEntry[] = [
     handoffArgs: [],
     bootstrapInput: DEFAULT_BOOTSTRAP,
     handoffBootstrapInput: DEFAULT_HANDOFF_BOOTSTRAP,
-    taskArgs: [
-      "exec",
-      "--sandbox",
-      "workspace-write",
-      "--ask-for-approval",
-      "never",
-      "--color",
-      "never",
-      "{{prompt}}"
-    ],
     limitPatterns: [
       "you've hit your usage limit",
       "you have hit your usage limit",
@@ -125,7 +113,6 @@ export const PROVIDER_CATALOG: ProviderCatalogEntry[] = [
     controllable: true,
     args: DEFAULT_SESSION_ARGS,
     handoffArgs: DEFAULT_HANDOFF_ARGS,
-    taskArgs: ["--json", "--yolo", "--cwd", "{{cwd}}", "{{prompt}}"],
     install: "Install with `npm install -g cline`.",
     auth: "Configure Cline providers/models, including OpenRouter, before enabling it.",
     homepage: "https://cline.bot/",
@@ -162,7 +149,6 @@ export const PROVIDER_CATALOG: ProviderCatalogEntry[] = [
     controllable: true,
     args: ["{{cwd}}", "--prompt", "{{sessionPrompt}}"],
     handoffArgs: ["{{cwd}}", "--prompt", "{{handoffPrompt}}"],
-    taskArgs: ["run", "{{prompt}}"],
     install: "Install with `npm i -g opencode-ai@latest` or Homebrew.",
     auth: "Run `opencode providers` to configure model providers and credentials.",
     updateCommands: [

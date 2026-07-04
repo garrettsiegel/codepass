@@ -99,10 +99,10 @@ describe("config", () => {
     expect(JSON.parse(await readFile(result.configPath, "utf8"))).toMatchObject({
       harness: { providers: expect.any(Array) }
     });
-    await expect(stat(path.join(cwd, ".codepass", "runs"))).resolves.toMatchObject({
+    await expect(stat(path.join(cwd, ".codepass", "sessions"))).resolves.toMatchObject({
       isDirectory: expect.any(Function)
     });
-    await expect(stat(path.join(cwd, ".codepass", "logs"))).resolves.toMatchObject({
+    await expect(stat(path.join(cwd, ".codepass", "handoffs"))).resolves.toMatchObject({
       isDirectory: expect.any(Function)
     });
   });

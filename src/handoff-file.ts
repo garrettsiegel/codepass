@@ -36,6 +36,8 @@ export const buildSessionPrompt = (
   "",
   "The handoff file is the continuity layer for the next tool. Update it whenever the goal, plan, changed files, commands run, blockers, or next steps change.",
   "",
+  "Revise the Current Goal, Working State, Changed Files, Commands And Checks, Blockers, and Next Step sections in place — overwrite stale content, don't append a running log. Keep the whole file under ~150 lines: summarize, don't transcribe.",
+  "",
   `Provider chain: ${providerChain.map((provider) => provider.label).join(" -> ")}`,
   "",
   "Do not wait until the end. Keep the handoff useful for another coding agent at any moment."
@@ -56,7 +58,8 @@ export const buildProviderHandoffPrompt = (
   `Switch reason: ${reason ?? "unknown"}`,
   "",
   "CodePass cannot transfer private chat state. The handoff file is the shared continuity layer.",
-  "After reading it, continue the work and keep the handoff file updated as you go."
+  "After reading it, continue the work and keep the handoff file updated as you go.",
+  "Revise sections in place rather than appending — keep the file under ~150 lines."
 ].join("\n");
 
 export const createHandoffFile = async (

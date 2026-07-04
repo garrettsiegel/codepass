@@ -53,7 +53,7 @@ describe("runDoctor", () => {
         expect.objectContaining({ name: "missing-test", available: false })
       ])
     );
-    expect(summary.runsDir).toBe(path.join(cwd, ".codepass", "runs"));
+    expect(summary.sessionsDir).toBe(path.join(cwd, ".codepass", "sessions"));
   });
 
   it("reports the full popular provider catalog when requested", async () => {

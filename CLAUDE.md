@@ -1,15 +1,12 @@
 # CLAUDE.md — CodePass
 
 CodePass is an interactive terminal harness for coding agents. It launches a coding tool
-(Claude Code, Codex, Antigravity, opencode, Cline, …) inside a PTY, watches its output, and on a
-recognizable limit/failure builds a handoff file and switches to the next configured provider. It
-also has an older non-interactive **task mode** (`codepass run "task"`) that runs a task through a
-fallback chain.
+(Claude Code, Codex, Antigravity, opencode, Cline, Ollama, …) inside a PTY, watches its output, and
+on a recognizable limit/failure builds a handoff file and switches to the next configured provider.
 
-For product/UX context see [README.md](./README.md), [HARNESS_VISION.md](./HARNESS_VISION.md), and
-the provider catalog notes in [POPULAR_TOOLS.md](./POPULAR_TOOLS.md). This file is the agent-facing
-build/architecture/gotcha guide. Monorepo-wide conventions live in the root
-[AGENTS.md](../../AGENTS.md).
+For product/UX context and project history see [README.md](./README.md) (usage) and
+[GAMEPLAN.md](./GAMEPLAN.md) (original brief, design vision, and the V1 execution log). This file
+is the agent-facing build/architecture/gotcha guide.
 
 ## Build / Test / Lint
 
@@ -27,34 +24,43 @@ Before finishing any task: `build`, `test`, and `lint` must all pass. Then run r
 
 ## Architecture
 
-Two execution modes share config, git context, and the handoff/continuity layer:
+CodePass has a single execution mode — the interactive harness (`src/harness.ts`, the `codepass`
+experience). It spawns a provider in a PTY (`node-pty`, with a piped-`child_process` fallback),
+mirrors stdin/stdout, keeps a `RollingTranscript`, watches live output for failures, and hands off
+on failure or `Ctrl+]`. `runHarness` (the orchestration loop) is split across three modules:
 
-- **Interactive harness** (`src/harness.ts`) — the primary `codepass` experience. Spawns a provider in a
-  PTY (`node-pty`, with a piped-`child_process` fallback), mirrors stdin/stdout, keeps a
-  `RollingTranscript`, watches live output for failures, and hands off on failure or `Ctrl+]`.
-- **Task mode** (`src/run.ts` → `src/provider.ts`) — runs a task non-interactively through the
-  fallback chain via `execa`. Classifies errors only after the process exits.
+| Module | Role |
+|---|---|
+| `src/harness.ts` | `runHarness` — the provider loop, handoff/checkpoint calls, commercial-break interstitial, session logging. |
+| `src/harness-session.ts` | `waitForProvider` — spawns one provider attempt, mirrors I/O, idle timeout, manual-switch key, cleanup. |
+| `src/failure-detection.ts` | Live/post-exit failure classification (`detectLiveFailure`/`detectExitFailure`), the prose-vs-status-line guard, manual-switch key mapping. |
+| `src/pty-factory.ts` | PTY process adapter + node-pty/pipe-fallback factories. |
 
-Supporting modules:
+Other supporting modules:
 
 | Module | Role |
 |---|---|
 | `src/config.ts` | Zod schema (`codepassConfigSchema`) — the config contract + defaults. All config shape changes go here. |
-| `src/provider-catalog.ts` | **Single source of truth** for every known tool (commands, args, integration type, install/auth notes). Add a tool here — do not scatter provider details across files. |
-| `src/errors.ts` | Error taxonomy + pattern matching (`classifyError`). |
-| `src/handoff-file.ts`, `src/context.ts` | Build the `.codepass/current/handoff.md` continuity artifact. |
-| `src/doctor.ts`, `src/setup.ts`, `src/updates.ts` | DX: health check, guided wizard, tool self-update. |
+| `src/provider-catalog.ts`, `src/provider-catalog-data.ts` | **Single source of truth** for every known tool (commands, args, integration type, install/auth notes, `limitPatterns`). Add a tool in `provider-catalog-data.ts` — do not scatter provider details across files. |
+| `src/errors.ts` | Error taxonomy + generic pattern matching (`classifyError`, `matchLimitPattern`, `matchProviderLimitPattern`). |
+| `src/handoff-file.ts` | Builds and maintains the `.codepass/current/handoff.md` continuity artifact and its prompts. |
+| `src/doctor.ts`, `src/provider-health.ts` | `codepass doctor` — provider health checks. |
+| `src/setup.ts`, `src/setup-prompts.ts`, `src/tool-status.ts` | The guided setup wizard: orchestration, clack prompt helpers, tool-availability detection. |
+| `src/updates.ts`, `src/update-runner.ts` | Tool self-update: orchestration + spinner UI, then the runner primitives. |
+| `src/cli.ts`, `src/cli-options.ts`, `src/commands/*.ts` | `commander` command wiring; each command's logic lives in its own `src/commands/<name>.ts`. |
 | `src/index.ts` | The public export surface (barrel) — keep exports intentional. |
-| `src/cli.ts` | `commander` command wiring. |
 
 ## Conventions
 
 - ESM throughout: import with explicit `.js` specifiers (e.g. `from "./config.js"`), TypeScript
   `module`/`moduleResolution` NodeNext.
 - The zod schema in `config.ts` is the contract; `types.ts` mirrors it (`CodePassConfig = z.infer<…>`).
-- To add/modify a provider, edit the `PROVIDER_CATALOG` entry in `provider-catalog.ts`; defaults flow
-  out through `getDefaultInteractiveProviders` / `getDefaultTaskProviders` / `mergeCatalogInteractiveProviders`.
-- Artifacts live under `.codepass/` (handoffs, sessions, runs, logs).
+- To add/modify a provider, edit the `PROVIDER_CATALOG` entry in `provider-catalog-data.ts`; defaults
+  flow out through `getDefaultInteractiveProviders` / `mergeCatalogInteractiveProviders`
+  (`provider-catalog.ts`).
+- Files stay ≤250 LOC — split by extracting a focused module (see the harness/setup/updates/doctor
+  splits above) rather than letting one file grow.
+- Artifacts live under `.codepass/` (handoffs, sessions).
 
 ## Gotchas
 
@@ -63,16 +69,14 @@ Supporting modules:
   loop in `harness-session.ts`). Broad substring patterns can false-positive on an
   agent that merely *discusses* a rate limit. Detection has two layers: the generic families in
   `errors.ts` (`matchLimitPattern`), trusted only on a *status-like line* (prose guard), and a
-  provider's curated `limitPatterns` in `provider-catalog.ts` (`matchProviderLimitPattern`), which are
-  exact tool banners trusted on a direct match — so keep those specific enough that they can't appear
-  in an agent's prose. Changing either, or the detection scope, can cause unwanted mid-session switches
-  — test both "prose mentions a limit → no switch" and "real limit banner → switch".
-- **The two modes classify errors differently.** Task mode only classifies after a non-zero exit (safe).
-  The harness classifies streamed output live (riskier). Keep this distinction in mind when touching
-  error handling.
+  provider's curated `limitPatterns` (defined per-tool in `provider-catalog-data.ts`, matched via
+  `matchProviderLimitPattern` in `errors.ts`), which are exact tool banners trusted on a direct
+  match — so keep those specific enough that they can't appear in an agent's prose. Changing either,
+  or the detection scope, can cause unwanted mid-session switches — test both "prose mentions a
+  limit → no switch" and "real limit banner → switch".
 - **PTY vs. pipe fallback.** When `node-pty` can't load, the harness falls back to a piped
-  `child_process` that lacks TTY semantics (no resize, degraded interactivity). Guard PTY-only calls
-  (e.g. `resize`) for the fallback.
+  `child_process` (`pty-factory.ts`) that lacks TTY semantics (no resize, degraded interactivity).
+  Guard PTY-only calls (e.g. `resize`) for the fallback.
 
 ## When Something Notable Happens
 
