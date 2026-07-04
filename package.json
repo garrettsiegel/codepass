@@ -15,7 +15,7 @@
   "homepage": "https://github.com/garrettsiegel/codepass#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/garrettsiegel/codepass.git"
+    "url": "git+https://github.com/garrettsiegel/codepass.git"
   },
   "license": "MIT",
   "author": "Garrett Siegel",
@@ -24,7 +24,7 @@
     "node": ">=20"
   },
   "bin": {
-    "codepass": "./dist/cli.js"
+    "codepass": "dist/cli.js"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
