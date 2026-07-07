@@ -324,6 +324,56 @@ describe("runHarness", () => {
     expect(launches).toEqual(["fake-claude"]);
   });
 
+  it("does not switch on Claude Code's wrapped percentage usage warning", async () => {
+    const cwd = await makeTempDir();
+    const config = defaultConfig();
+    config.harness.setupComplete = true;
+    config.harness.providerOrder = ["claude", "codex"];
+    config.harness.providers = [
+      {
+        name: "claude",
+        label: "Claude Code",
+        enabled: true,
+        command: "fake-claude",
+        args: ["{{sessionPrompt}}"],
+        handoffArgs: ["{{handoffPrompt}}"],
+        integrationType: "pty"
+      },
+      {
+        name: "codex",
+        label: "Codex",
+        enabled: true,
+        command: "fake-codex",
+        args: ["{{sessionPrompt}}"],
+        handoffArgs: ["{{handoffPrompt}}"],
+        integrationType: "pty"
+      }
+    ];
+    const launches: string[] = [];
+    const ptyFactory: PtyFactory = (command) => {
+      launches.push(command);
+      // The ink TUI wraps the notice across rows, so "session limit …" heads its
+      // own line — the exact shape that used to force a spurious handoff.
+      return new FakePty({
+        data: "You've used 92% of your\nsession limit · resets 1am (America/New_York) · /upgrade to keep using Claude Code",
+        exitCode: 0
+      });
+    };
+
+    const summary = await runHarness({
+      cwd,
+      config,
+      ptyFactory,
+      output: new PassThrough() as NodeJS.WriteStream
+    });
+
+    expect(summary.attempts).toHaveLength(1);
+    expect(summary.attempts[0]?.errorType).toBeUndefined();
+    expect(summary.finalProvider).toBe("claude");
+    expect(summary.success).toBe(true);
+    expect(launches).toEqual(["fake-claude"]);
+  });
+
   it("still switches when a real limit appears on an error line", async () => {
     const cwd = await makeTempDir();
     const config = defaultConfig();

@@ -91,3 +91,47 @@ describe("detectLiveFailure — generic patterns keep the prose guard", () => {
     ).toBeUndefined();
   });
 });
+
+describe("detectLiveFailure — percentage usage warnings are not limits", () => {
+  const config = defaultConfig();
+  const provider = makeProvider();
+
+  it("ignores the exact 92% session-limit warning on one line", () => {
+    const warning =
+      "You've used 92% of your session limit · resets 1am (America/New_York) · /upgrade to keep using Claude Code";
+    expect(detectLiveFailure(`${warning}\n`, provider, config, [])).toBeUndefined();
+  });
+
+  it("ignores the warning when the TUI wraps it across two rows", () => {
+    // Regression for the reported bug: ink wraps the row, so "session limit …"
+    // heads its own line and would otherwise satisfy the prose guard.
+    const wrapped = [
+      "You've used 92% of your",
+      "session limit · resets 1am (America/New_York) · /upgrade to keep using Claude Code"
+    ].join("\n");
+    expect(detectLiveFailure(`${wrapped}\n`, provider, config, [])).toBeUndefined();
+  });
+
+  it("ignores the wrapped weekly usage-limit warning the same way", () => {
+    const wrapped = [
+      "You've used 92% of your",
+      "usage limit · resets Monday · /upgrade to keep using Claude Code"
+    ].join("\n");
+    expect(detectLiveFailure(`${wrapped}\n`, provider, config, [])).toBeUndefined();
+  });
+
+  it("still switches on a genuine exhaustion banner", () => {
+    expect(
+      detectLiveFailure("Claude usage limit reached.\n", provider, config, [])
+    ).toBe("rate_limit");
+  });
+
+  it("still switches when a real banner follows a warning later in the tail", () => {
+    const tail = [
+      "You've used 92% of your session limit · resets 1am",
+      "Working on the task...",
+      "Claude usage limit reached."
+    ].join("\n");
+    expect(detectLiveFailure(`${tail}\n`, provider, config, [])).toBe("rate_limit");
+  });
+});

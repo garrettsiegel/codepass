@@ -1,4 +1,4 @@
-import { classifyError, matchLimitPattern, matchProviderLimitPattern } from "./errors.js";
+import { classifyError, isUsageWarning, matchLimitPattern, matchProviderLimitPattern } from "./errors.js";
 import type { AgentErrorType, InteractiveProviderConfig, CodePassConfig } from "./types.js";
 
 // Control sequences for the supported manual-switch keys. Values are the raw
@@ -118,8 +118,21 @@ export const detectLiveFailure = (
 ): AgentErrorType | undefined => {
   const cleaned = stripIgnored(tail, ignore);
   const fallbackOn = provider.fallbackOn ?? config.fallbackOn;
+  let previousLine: string | undefined;
 
   for (const line of cleaned.split("\n")) {
+    // Percentage "approaching your limit" warnings wrap across TUI rows, so the
+    // figure can sit on the previous line while a limit pattern heads this one.
+    // Judge the warning shape on both lines together and skip the line if so —
+    // these are not limit-hit events (e.g. "You've used 92% of your session
+    // limit"), and a curated banner path must not fire on them either.
+    const context = previousLine === undefined ? line : `${previousLine} ${line}`;
+    previousLine = line;
+
+    if (isUsageWarning(context)) {
+      continue;
+    }
+
     const banner = matchProviderLimitPattern(line, provider.limitPatterns);
     if (
       fallbackOn.includes("rate_limit") &&

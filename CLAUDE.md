@@ -73,9 +73,16 @@ Other supporting modules:
   `matchProviderLimitPattern` in `errors.ts`), which are exact tool banners. Both layers require a
   status-like line before switching — provider banners use the *strict* variant of
   `isStatusLikeLine` (the banner must head its line or follow an error indicator), so a banner
-  quoted in an agent's prose won't force a handoff. Keep banners specific anyway. Changing either
-  layer, or the detection scope, can cause unwanted mid-session switches — test both "prose mentions
-  a limit → no switch" and "real limit banner → switch".
+  quoted in an agent's prose won't force a handoff. Keep banners specific anyway. A third guard,
+  `isUsageWarning` in `errors.ts`, drops any line that reads as an "approaching your limit"
+  percentage notice (a 1–99% figure tied to a limit, e.g. Claude Code's *"You've used 92% of your
+  session limit"*) before the pattern layers run — such warnings are **not** limit-hit events.
+  Because ink TUIs wrap a row into multiple real lines, the check folds in the *previous* line as
+  context (the `92%` and the word `limit` can land on separate lines). Relatedly,
+  `RollingTranscript.excerpt()` drops a leading partial line so a mid-line slice can't spoof the
+  `startsWith` prose guard. Changing any layer, or the detection scope, can cause unwanted
+  mid-session switches — test all of "prose mentions a limit → no switch", "percentage warning
+  (flat and TUI-wrapped) → no switch", and "real limit banner → switch".
 - **PTY vs. pipe fallback.** When `node-pty` can't load, the harness falls back to a piped
   `child_process` (`pty-factory.ts`) that lacks TTY semantics (no resize, degraded interactivity).
   Guard PTY-only calls (e.g. `resize`) for the fallback.

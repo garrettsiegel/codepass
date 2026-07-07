@@ -28,6 +28,55 @@ const AUTH_PATTERNS = [
   "no saved credentials"
 ];
 
+// A percentage between 1 and 99 (inclusive), with an optional decimal part.
+// 0% and 100% are intentionally NOT matched: 100% is exhaustion, and 0% is
+// treated as exhaustion too — only a partial figure reads as "approaching".
+const USAGE_PERCENT = /\b[1-9]\d?(?:\.\d+)?\s*%/;
+
+/**
+ * True when `context` reads as an "approaching your limit" usage warning — a
+ * 1–99% figure sitting in a usage/limit context, or an explicit
+ * "approaching … limit" — rather than a limit-hit event. Coding-tool TUIs
+ * (Claude Code, …) surface a percentage notice ("You've used 92% of your
+ * session limit") that mentions the word "limit" but does NOT mean the tool is
+ * blocked. Detection must never treat these as a real limit.
+ */
+export const isUsageWarning = (context: string): boolean => {
+  const lower = context.toLowerCase();
+
+  if (/\bapproaching\b[^.]*\blimit\b/.test(lower)) {
+    return true;
+  }
+
+  if (!USAGE_PERCENT.test(lower)) {
+    return false;
+  }
+
+  // A 1–99% figure only reads as a usage warning when it sits alongside
+  // usage/limit language — an unrelated percentage shouldn't suppress detection.
+  return (
+    lower.includes("used") ||
+    lower.includes("of your") ||
+    lower.includes("left") ||
+    lower.includes("remaining") ||
+    lower.includes("limit")
+  );
+};
+
+// Remove lines that read as usage-percentage warnings before pattern matching,
+// so an "approaching your limit" notice on screen at exit isn't classified as a
+// real limit. The previous line is folded into each line's context because TUIs
+// wrap the warning across rows (the figure and "limit" land on separate lines).
+const stripUsageWarnings = (text: string): string => {
+  const lines = text.split("\n");
+  return lines
+    .filter((line, index) => {
+      const context = index > 0 ? `${lines[index - 1]} ${line}` : line;
+      return !isUsageWarning(context);
+    })
+    .join("\n");
+};
+
 /**
  * Ordered pattern groups for the limit/quota/auth families CodePass can detect from
  * text alone (no exit code). Quota is checked before rate limit so the more
@@ -98,7 +147,7 @@ export const classifyError = (
     return undefined;
   }
 
-  const output = `${stdout}\n${stderr}`.toLowerCase();
+  const output = stripUsageWarnings(`${stdout}\n${stderr}`).toLowerCase();
 
   if (QUOTA_PATTERNS.some((pattern) => output.includes(pattern))) {
     return "quota_exceeded";

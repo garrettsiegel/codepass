@@ -1,9 +1,45 @@
 import { describe, expect, it } from "vitest";
-import { classifyError, matchProviderLimitPattern } from "../src/errors.js";
+import { classifyError, isUsageWarning, matchProviderLimitPattern } from "../src/errors.js";
+
+describe("isUsageWarning", () => {
+  it("flags the exact 92% session-limit warning", () => {
+    expect(
+      isUsageWarning(
+        "You've used 92% of your session limit · resets 1am (America/New_York) · /upgrade to keep using Claude Code"
+      )
+    ).toBe(true);
+  });
+
+  it("flags an explicit 'approaching your limit' notice", () => {
+    expect(isUsageWarning("You are approaching your usage limit")).toBe(true);
+  });
+
+  it("does not flag a real limit-hit banner", () => {
+    expect(isUsageWarning("usage limit reached")).toBe(false);
+  });
+
+  it("does not flag 100% usage (that is exhaustion, not a warning)", () => {
+    expect(isUsageWarning("You've used 100% of your session limit")).toBe(false);
+  });
+
+  it("does not flag an unrelated percentage without limit context", () => {
+    expect(isUsageWarning("Coverage rose to 92% across the suite")).toBe(false);
+  });
+});
 
 describe("classifyError", () => {
   it("detects rate limits", () => {
     expect(classifyError("", "429 too many requests; rate limit reached", 1)).toBe("rate_limit");
+  });
+
+  it("treats a percentage usage warning at exit as a plain nonzero exit", () => {
+    expect(
+      classifyError(
+        "You've used 92% of your session limit · resets 1am (America/New_York) · /upgrade to keep using Claude Code",
+        "",
+        1
+      )
+    ).toBe("nonzero_exit");
   });
 
   it("detects quota failures", () => {
