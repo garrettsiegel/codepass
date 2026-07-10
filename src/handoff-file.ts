@@ -1,7 +1,7 @@
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { AgentErrorType, InteractiveProviderConfig, CodePassConfig } from "./types.js";
-import { formatGitSnapshot, getChangedFiles, getGitContext } from "./git.js";
+import { formatChangedFiles, formatGitSnapshot, getChangedFiles, getGitSnapshot } from "./git.js";
 import { getHandoffPaths } from "./handoff-artifacts.js";
 import {
   appendSwitchHistoryLine,
@@ -31,14 +31,25 @@ export const createHandoffFile = async (
   cwd: string,
   config: CodePassConfig,
   providerChain: InteractiveProviderConfig[],
-  startedAt: string
+  startedAt: string,
+  task?: string
 ): Promise<string> => {
   const paths = getHandoffPaths(cwd, config);
-  const gitContext = await getGitContext(cwd, config.context.maxDiffChars);
+  const gitContext = await getGitSnapshot(cwd);
   const changedFiles = await getChangedFiles(cwd);
   await mkdir(path.dirname(paths.livePath), { recursive: true });
   await mkdir(paths.archiveDir, { recursive: true });
   await ensureArtifactsIgnored(path.join(cwd, DEFAULT_CODEPASS_DIR));
+  let stale: string | undefined;
+  try {
+    stale = await readFile(paths.livePath, "utf8");
+  } catch {
+    // No stale live handoff to recover.
+  }
+  if (stale !== undefined) {
+    const safeStartedAt = startedAt.replaceAll(":", "-").replaceAll(".", "-");
+    await writeFile(path.join(paths.archiveDir, `recovered-${safeStartedAt}.md`), stale, "utf8");
+  }
   const content = [
     "# CodePass Handoff",
     "",
@@ -48,7 +59,9 @@ export const createHandoffFile = async (
     "",
     "## Current Goal",
     "",
-    "- User has not provided a separate session goal yet. Infer the goal from the live conversation and update this section.",
+    task
+      ? `- ${redactSecrets(task)}`
+      : "- User has not provided a separate session goal yet. Infer the goal from the live conversation and update this section.",
     "",
     "## Working State",
     "",
@@ -64,11 +77,13 @@ export const createHandoffFile = async (
     "",
     "## Next Step",
     "",
-    "- Start by understanding the user's request and current repository state.",
+    task
+      ? "- Begin the task above and keep this handoff current after each meaningful subtask."
+      : "- Start by understanding the user's request and current repository state.",
     "",
     "## Changed Files",
     "",
-    changedFiles.length > 0 ? changedFiles.map((file) => `- ${file}`).join("\n") : "- None.",
+    formatChangedFiles(changedFiles),
     "",
     "## Repository Snapshot",
     "",
@@ -171,4 +186,3 @@ export const summarizeHandoffFile = async (
     };
   }
 };
-

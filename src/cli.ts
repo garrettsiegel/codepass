@@ -2,7 +2,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { Command } from "commander";
+import { Command, InvalidArgumentError } from "commander";
 import { runClearCommand } from "./commands/clear.js";
 import { runDoctorCommand } from "./commands/doctor.js";
 import { runHandoffCommand } from "./commands/handoff.js";
@@ -11,18 +11,36 @@ import { runLaunchCommand } from "./commands/launch.js";
 import { runProvidersCommand } from "./commands/providers.js";
 import { runSessionCommand } from "./commands/session.js";
 import { runSetupCommand } from "./commands/setup.js";
-import { resolveCommandOptions, type CliOptions } from "./cli-options.js";
+import {
+  resolveCommandOptions,
+  splitExplicitTaskArgv,
+  type CliOptions
+} from "./cli-options.js";
+import { reasoningEffortSchema, routingTierSchema } from "./routing-config.js";
+import type { ReasoningEffort, RoutingTier } from "./types.js";
 
-// Support `codepass -- <args>` by stripping the `--` separator; the bare
-// `codepass` invocation launches the interactive harness (default action).
-const normalizeArgv = (argv: string[]): string[] =>
-  argv[2] === "--" ? [argv[0] ?? "node", argv[1] ?? "codepass", ...argv.slice(3)] : argv;
+const parseTier = (value: string): RoutingTier => {
+  const parsed = routingTierSchema.safeParse(value);
+  if (!parsed.success) {
+    throw new InvalidArgumentError("Use one of: light, standard, deep, max.");
+  }
+  return parsed.data;
+};
+
+const parseEffort = (value: string): ReasoningEffort => {
+  const parsed = reasoningEffortSchema.safeParse(value);
+  if (!parsed.success) {
+    throw new InvalidArgumentError("Use one of: low, medium, high, xhigh, max, ultra.");
+  }
+  return parsed.data;
+};
 
 // Read the version from package.json at runtime so `--version` can never drift
 // from the published package (this file compiles to dist/cli.js, one level
 // below the package root where package.json lives).
 const packageJsonPath = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "package.json");
 const { version } = JSON.parse(readFileSync(packageJsonPath, "utf8")) as { version: string };
+const explicitTask = splitExplicitTaskArgv(process.argv);
 
 const program = new Command();
 
@@ -32,10 +50,17 @@ program
   .version(version);
 
 program
+  .argument("[task...]", "Task to start and route")
   .option("-c, --config <path>", "Config file path")
   .option("--cwd <path>", "Working directory", process.cwd())
-  .action(async (options: CliOptions) => {
-    await runLaunchCommand(options);
+  .option("--tier <tier>", "Override routing tier", parseTier)
+  .option("--model <model>", "Override the routed model")
+  .option("--effort <effort>", "Override reasoning effort", parseEffort)
+  .option("--no-route", "Disable routing for this run")
+  .action(async (task: string[] | undefined, rawOptions: CliOptions | Command, command?: Command) => {
+    const options = resolveCommandOptions(rawOptions, command);
+    const taskText = explicitTask.task ?? (task?.join(" ").trim() || undefined);
+    await runLaunchCommand({ ...options, task: taskText });
   });
 
 program
@@ -105,4 +130,4 @@ program
     await runSessionCommand(resolveCommandOptions(rawOptions, command));
   });
 
-await program.parseAsync(normalizeArgv(process.argv));
+await program.parseAsync(explicitTask.argv);

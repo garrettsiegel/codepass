@@ -5,6 +5,7 @@ import { PassThrough } from "node:stream";
 import { describe, expect, it } from "vitest";
 import { defaultConfig } from "../src/config.js";
 import { runHarness, type PtyFactory, type PtyProcess } from "../src/harness.js";
+import { classifyTask } from "../src/routing.js";
 
 class FakePty implements PtyProcess {
   #dataListeners: Array<(data: string) => void> = [];
@@ -91,6 +92,51 @@ const rateLimitLine = (primary: number, secondary: number): string =>
   });
 
 describe("runHarness", () => {
+  it("records routed launch metadata, handoff quality, and an explicit task outcome", async () => {
+    const cwd = await makeTempDir();
+    const config = defaultConfig();
+    config.routing.enabled = true;
+    config.harness.providerOrder = ["claude"];
+    config.harness.providers = [{
+      name: "claude",
+      label: "Claude Code",
+      enabled: true,
+      command: "fake-claude",
+      args: ["{{sessionPrompt}}"],
+      handoffArgs: ["{{handoffPrompt}}"],
+      integrationType: "pty"
+    }];
+    const launches: Array<{ command: string; args: string[] }> = [];
+    const ptyFactory: PtyFactory = (command, args) => {
+      launches.push({ command, args });
+      return new FakePty({
+        data: `received: ${args.at(-1)?.replaceAll("\n", "\r\n")}`,
+        exitCode: 0
+      });
+    };
+    const input = new PassThrough() as NodeJS.ReadStream & { isTTY?: boolean };
+    input.isTTY = true;
+
+    const summary = await runHarness({
+      cwd,
+      config,
+      ptyFactory,
+      input,
+      output: new PassThrough() as NodeJS.WriteStream,
+      task: "Implement the approved plan",
+      routeDecision: classifyTask({ task: "Implement the approved plan" }),
+      outcomeSelector: async () => "completed"
+    });
+
+    expect(launches[0]?.args.slice(0, 4)).toEqual(["--model", "sonnet", "--effort", "medium"]);
+    expect(summary.attempts[0]?.route).toMatchObject({ tier: "standard", model: "sonnet" });
+    expect(summary.outcome).toBe("completed");
+    expect(summary.handoffQuality).toMatchObject({ taskInitialized: true, narrativeUpdated: false });
+    const handoff = await readFile(path.join(cwd, ".codepass", "current", "handoff.md"), "utf8");
+    expect(handoff).toContain("The final provider process exited cleanly. Reported task outcome: completed.");
+    expect(handoff).not.toContain("Complete this task:");
+  });
+
   it("falls back from a fake Claude rate limit to fake Codex with a handoff", async () => {
     const cwd = await makeTempDir();
     const config = defaultConfig();
@@ -137,6 +183,7 @@ describe("runHarness", () => {
       cwd,
       config,
       ptyFactory,
+      task: "Fix checkout",
       output: new PassThrough() as NodeJS.WriteStream
     });
 
@@ -145,6 +192,7 @@ describe("runHarness", () => {
     expect(summary.finalProvider).toBe("codex");
     expect(summary.success).toBe(true);
     expect(launches[0]?.args[0]).toContain("Keep this shared handoff file updated");
+    expect(launches[0]?.args[0]).toContain("Fix checkout");
     expect(launches[1]?.args[0]).toContain("Switch reason: rate_limit");
     const handoff = await readFile(path.join(cwd, ".codepass", "current", "handoff.md"), "utf8");
     expect(handoff).toContain("Reason: rate_limit");

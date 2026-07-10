@@ -15,8 +15,15 @@
   },
   "updates": {
     "checkOnStart": true,
-    "mode": "always",
+    "mode": "prompt",
     "includeDisabledProviders": false
+  },
+  "routing": {
+    "enabled": false,
+    "promptForTask": true,
+    "allowOverride": true,
+    "askOutcome": true,
+    "telemetry": true
   },
   "harness": {
     "setupComplete": false,
@@ -61,12 +68,10 @@
         "name": "antigravity",
         "label": "Google Antigravity",
         "enabled": true,
-        "command": "antigravity",
-        "args": [],
-        "handoffArgs": [],
-        "integrationType": "pty_with_bootstrap_input",
-        "bootstrapInput": "{{sessionPrompt}}\n",
-        "handoffBootstrapInput": "{{handoffPrompt}}\n",
+        "command": "agy",
+        "args": ["--prompt-interactive", "{{sessionPrompt}}"],
+        "handoffArgs": ["--prompt-interactive", "{{handoffPrompt}}"],
+        "integrationType": "pty",
         "controllable": true
       },
       {

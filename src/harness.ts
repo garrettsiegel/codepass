@@ -1,11 +1,15 @@
 import chalk from "chalk";
 import type {
+  AppliedRoute,
   HarnessAttemptLog,
   HarnessSessionLog,
   InteractiveProviderConfig,
-  CodePassConfig
+  CodePassConfig,
+  RouteDecision,
+  SessionOutcome
 } from "./types.js";
 import { getChangedFiles } from "./git.js";
+import { readFile } from "node:fs/promises";
 import {
   appendHandoffCheckpoint,
   archiveHandoffFile,
@@ -20,9 +24,12 @@ import { writeSessionLog } from "./session-log.js";
 import { chooseSwitchProvider, type SwitchSelector } from "./switch-menu.js";
 import { renderCommercialBreak } from "./terminal-ui.js";
 import type { UsageProbeOptions } from "./usage-probe.js";
-
+import { classifyTask } from "./routing.js";
+import { resolveProviderRoute } from "./model-routing.js";
+import type { RouteOverrides } from "./model-routing.js";
+import { assessHandoffQuality } from "./handoff-quality.js";
+import { chooseSessionOutcome, type OutcomeSelector } from "./session-outcome.js";
 export type { PtyFactory, PtyFactoryOptions, PtyProcess } from "./pty-factory.js";
-
 export interface HarnessOptions {
   cwd: string;
   config: CodePassConfig;
@@ -33,8 +40,27 @@ export interface HarnessOptions {
   output?: NodeJS.WriteStream;
   // Test-only injection: points provider usage probes at a fixture directory.
   usageProbeOptions?: UsageProbeOptions;
+  task?: string;
+  routeDecision?: RouteDecision;
+  routeOverrides?: RouteOverrides;
+  outcomeSelector?: OutcomeSelector;
 }
+const meaningfulTranscriptExcerpt = (
+  excerpt: string | undefined,
+  transportPrompts: Array<string | undefined>
+): string | undefined => {
+  if (!excerpt) {
+    return undefined;
+  }
 
+  const normalizeLines = (value: string): string =>
+    value.replaceAll("\r\n", "\n").replaceAll("\r", "\n");
+  const withoutPrompts = transportPrompts
+    .filter((prompt): prompt is string => Boolean(prompt))
+    .reduce((value, prompt) => value.replaceAll(normalizeLines(prompt), ""), normalizeLines(excerpt))
+    .trim();
+  return /^(?:received:\s*)?$/i.test(withoutPrompts) ? undefined : withoutPrompts;
+};
 export const runHarness = async (
   options: HarnessOptions
 ): Promise<HarnessSessionLog> => {
@@ -45,6 +71,7 @@ export const runHarness = async (
   let handoffPrompt: string | undefined;
   let success = false;
   let finalProvider: string | undefined;
+  let repeatedFailures = 0;
 
   if (providers.length === 0) {
     throw new Error("CodePass harness has no enabled providers. Run `codepass setup` or `codepass providers`.");
@@ -59,9 +86,10 @@ export const runHarness = async (
     options.cwd,
     options.config,
     providers,
-    startedAt
+    startedAt,
+    options.task
   );
-  const sessionPrompt = buildSessionPrompt(handoffPath, providers);
+  const sessionPrompt = buildSessionPrompt(handoffPath, providers, options.task);
   options.output?.write(chalk.gray(`Handoff file: ${handoffPath}\n`));
 
   let index = 0;
@@ -72,6 +100,24 @@ export const runHarness = async (
       continue;
     }
 
+    const decision = options.task && options.routeDecision?.source === "classifier"
+      ? classifyTask({
+          task: options.task,
+          changedFiles: await getChangedFiles(options.cwd),
+          repeatedFailures
+        })
+      : options.routeDecision;
+    const route: AppliedRoute | undefined = decision
+      ? await resolveProviderRoute(provider, decision, options.routeOverrides)
+      : undefined;
+    if (route) {
+      options.output?.write(chalk.gray(
+        `Route: ${route.tier} -> ${provider.label}` +
+        `${route.model ? ` / ${route.model}` : " / provider default"}` +
+        `${route.effort ? ` / ${route.effort}` : ""}\n`
+      ));
+    }
+
     const attempt = await waitForProvider(
       provider,
       options.config,
@@ -79,12 +125,24 @@ export const runHarness = async (
       handoffPrompt,
       handoffPath,
       sessionPrompt,
+      route,
       options.ptyFactory ?? defaultPtyFactory,
       options.input,
       options.output,
       options.usageProbeOptions
     );
-    attempts.push(attempt);
+    attempts.push(
+      options.config.routing.telemetry
+        ? attempt
+        : (() => {
+            const { route: _route, ...withoutRoute } = attempt;
+            return withoutRoute;
+          })()
+    );
+
+    if (["timeout", "nonzero_exit", "unknown"].includes(attempt.errorType ?? "")) {
+      repeatedFailures += 1;
+    }
 
     if (!attempt.errorType) {
       success = attempt.exitCode === 0;
@@ -126,22 +184,50 @@ export const runHarness = async (
       handoffPath,
       provider.label,
       selected.provider.label,
-      attempt.errorType
+      attempt.errorType,
+      options.task
     );
     options.output?.write(chalk.green(`Starting ${selected.provider.label} with the CodePass handoff file.\n`));
     index = selected.index;
   }
 
+  let outcome: SessionOutcome = "unknown";
+  if (
+    options.routeDecision &&
+    options.config.routing.telemetry &&
+    options.config.routing.askOutcome &&
+    options.input?.isTTY
+  ) {
+    outcome = await (options.outcomeSelector ?? chooseSessionOutcome)();
+  }
+
   await appendHandoffCheckpoint(options.cwd, options.config, {
     type: "session_end",
     fromProvider: finalProvider,
-    note: success ? "CodePass session ended successfully." : "CodePass session ended before a successful provider completion."
+    transcriptExcerpt: meaningfulTranscriptExcerpt(
+      attempts.at(-1)?.transcriptExcerpt,
+      [sessionPrompt, handoffPrompt]
+    ),
+    note: [
+      success
+        ? "The final provider process exited cleanly."
+        : "The session ended without a clean provider exit.",
+      options.routeDecision && options.config.routing.telemetry
+        ? `Reported task outcome: ${outcome}.`
+        : undefined
+    ].filter(Boolean).join(" ")
   });
   const archivePath = await archiveHandoffFile(options.cwd, options.config, sessionId);
   if (archivePath) {
     options.output?.write(chalk.gray(`CodePass archived handoff: ${archivePath}\n`));
   }
 
+  let handoffQuality;
+  try {
+    handoffQuality = assessHandoffQuality(await readFile(handoffPath, "utf8"));
+  } catch {
+    handoffQuality = undefined;
+  }
   const log: HarnessSessionLog = {
     cwd: options.cwd,
     startedAt,
@@ -150,7 +236,12 @@ export const runHarness = async (
     attempts,
     finalProvider,
     success,
-    changedFiles: await getChangedFiles(options.cwd)
+    changedFiles: await getChangedFiles(options.cwd),
+    ...(options.task ? { task: options.task } : {}),
+    ...(options.routeDecision && options.config.routing.telemetry
+      ? { routeDecision: options.routeDecision, outcome }
+      : {}),
+    ...(handoffQuality ? { handoffQuality } : {})
   };
   const sessionLogPath = await writeSessionLog(options.cwd, options.config, log);
   options.output?.write(chalk.gray(`\nCodePass session log: ${sessionLogPath}\n`));

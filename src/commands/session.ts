@@ -19,7 +19,30 @@ export const runSessionCommand = async (options: CliOptions): Promise<void> => {
     console.log("Ended:", latest.endedAt);
     console.log("Providers:", latest.providerOrder.join(" -> "));
     console.log("Attempts:", latest.attempts.length);
+    console.log("Provider process:", latest.success ? "exited cleanly" : "did not complete cleanly");
     console.log("Changed files:", latest.changedFiles.length);
+    if (latest.routeDecision) {
+      console.log("Route:", `${latest.routeDecision.tier} (${latest.routeDecision.reason})`);
+      const applied = [...latest.attempts].reverse().find((attempt) => attempt.route)?.route;
+      if (applied) {
+        console.log(
+          "Applied model:",
+          `${applied.provider}: ${applied.model ?? "provider default"}` +
+          `${applied.effort ? ` / ${applied.effort}` : ""}`
+        );
+      }
+    }
+    if (latest.outcome) {
+      console.log("Task outcome:", latest.outcome);
+    }
+    if (latest.handoffQuality) {
+      const { taskInitialized, narrativeUpdated, placeholdersRemaining } = latest.handoffQuality;
+      console.log(
+        "Handoff quality:",
+        `task ${taskInitialized ? "recorded" : "missing"}, narrative ${narrativeUpdated ? "updated" : "stale"}` +
+        `${placeholdersRemaining.length > 0 ? `, placeholders: ${placeholdersRemaining.join(", ")}` : ""}`
+      );
+    }
     console.log("Log:", latest.sessionLogPath ?? "(unknown)");
   } catch (error) {
     console.error(chalk.red(error instanceof Error ? error.message : String(error)));

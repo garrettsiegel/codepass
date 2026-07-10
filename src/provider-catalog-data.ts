@@ -22,8 +22,8 @@ export interface ProviderCatalogEntry {
   bootstrapInput?: string;
   handoffBootstrapInput?: string;
   // Exact rate/usage-limit banners this tool prints when it blocks. Kept specific
-  // enough that they cannot appear in an agent's ordinary prose — see T3 notes in
-  // src/TASK.md and failure-detection.ts:detectLiveFailure.
+  // enough that they cannot appear in an agent's ordinary prose — see
+  // failure-detection.ts:detectLiveFailure.
   limitPatterns?: string[];
   // Local-file usage probe for this tool, if it writes readable headroom state.
   // Codex: rollout JSONLs under ~/.codex/sessions. Claude Code has none today.
@@ -49,15 +49,13 @@ export const PROVIDER_CATALOG: ProviderCatalogEntry[] = [
     name: "claude",
     label: "Claude Code",
     group: "harness",
-    integrationType: "pty_with_bootstrap_input",
+    integrationType: "pty",
     command: "claude",
     versionArgs: ["--version"],
     defaultEnabled: true,
     controllable: true,
-    args: [],
-    handoffArgs: [],
-    bootstrapInput: DEFAULT_BOOTSTRAP,
-    handoffBootstrapInput: DEFAULT_HANDOFF_BOOTSTRAP,
+    args: DEFAULT_SESSION_ARGS,
+    handoffArgs: DEFAULT_HANDOFF_ARGS,
     limitPatterns: [
       "5-hour limit reached",
       "upgrade to increase your usage limit",
@@ -79,15 +77,13 @@ export const PROVIDER_CATALOG: ProviderCatalogEntry[] = [
     name: "codex",
     label: "Codex",
     group: "harness",
-    integrationType: "pty_with_bootstrap_input",
+    integrationType: "pty",
     command: "codex",
     versionArgs: ["--version"],
     defaultEnabled: true,
     controllable: true,
-    args: [],
-    handoffArgs: [],
-    bootstrapInput: DEFAULT_BOOTSTRAP,
-    handoffBootstrapInput: DEFAULT_HANDOFF_BOOTSTRAP,
+    args: DEFAULT_SESSION_ARGS,
+    handoffArgs: DEFAULT_HANDOFF_ARGS,
     limitPatterns: [
       "you've hit your usage limit",
       "you have hit your usage limit",
@@ -127,20 +123,18 @@ export const PROVIDER_CATALOG: ProviderCatalogEntry[] = [
     name: "antigravity",
     label: "Google Antigravity",
     group: "harness",
-    integrationType: "pty_with_bootstrap_input",
+    integrationType: "pty",
     command: "agy",
     versionArgs: ["--version"],
     defaultEnabled: true,
     controllable: true,
-    args: [],
-    handoffArgs: [],
-    bootstrapInput: DEFAULT_BOOTSTRAP,
-    handoffBootstrapInput: DEFAULT_HANDOFF_BOOTSTRAP,
+    args: ["--prompt-interactive", "{{sessionPrompt}}"],
+    handoffArgs: ["--prompt-interactive", "{{handoffPrompt}}"],
     install: "Install with `curl -fsSL https://antigravity.google/cli/install.sh | bash` (Windows: `irm https://antigravity.google/cli/install.ps1 | iex`), then verify with `agy --version`.",
     auth: "Sign in by running `agy`, or set GEMINI_API_KEY / ANTIGRAVITY_API_KEY for headless use.",
     homepage: "https://antigravity.google/",
     summary: "Google's agent-first coding platform; its CLI ships as the `agy` command.",
-    limitation: "CodePass drives Antigravity through the interactive `agy` TUI inside a PTY and types the prompt after launch. No verified rate-limit banner yet, so it relies on CodePass's generic limit detection (add exact strings to `limitPatterns` once confirmed)."
+    limitation: "CodePass drives Antigravity through `agy --prompt-interactive` inside a PTY. No verified rate-limit banner yet, so it relies on CodePass's generic limit detection (add exact strings to `limitPatterns` once confirmed)."
   },
   {
     name: "opencode",

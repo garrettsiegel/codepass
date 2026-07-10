@@ -1,4 +1,7 @@
 import { Command } from "commander";
+import type { ReasoningEffort, RoutingTier } from "./types.js";
+
+export const EXPLICIT_TASK_SENTINEL = "__codepass_explicit_task__";
 
 export interface CliOptions {
   all?: boolean;
@@ -8,13 +11,37 @@ export interface CliOptions {
   maxRetries?: string;
   printPrompt?: boolean;
   provider?: string;
+  task?: string;
+  tier?: RoutingTier;
+  model?: string;
+  effort?: ReasoningEffort;
+  route?: boolean;
 }
 
+export const splitExplicitTaskArgv = (
+  argv: string[]
+): { argv: string[]; task?: string } => {
+  const separator = argv.indexOf("--");
+  if (separator < 0) {
+    return { argv };
+  }
+
+  const task = argv.slice(separator + 1).join(" ").trim();
+  return {
+    argv: task
+      ? [...argv.slice(0, separator), EXPLICIT_TASK_SENTINEL]
+      : argv.slice(0, separator),
+    ...(task ? { task } : {})
+  };
+};
+
 export const readOptionFromArgv = (names: string[]): string | undefined => {
-  for (const [index, arg] of process.argv.entries()) {
+  const separator = process.argv.indexOf("--");
+  const argv = separator >= 0 ? process.argv.slice(0, separator) : process.argv;
+  for (const [index, arg] of argv.entries()) {
     for (const name of names) {
       if (arg === name) {
-        return process.argv[index + 1];
+        return argv[index + 1];
       }
 
       if (arg.startsWith(`${name}=`)) {

@@ -4,6 +4,7 @@ import { loadConfig } from "../config.js";
 import { runHarness } from "../harness.js";
 import { describeProviderChain, getEnabledInteractiveProviders } from "../interactive-provider.js";
 import { getSetupState, runSetupWizard } from "../setup.js";
+import { resolveRouteForLaunch, resolveTaskForLaunch } from "../launch-routing.js";
 import { renderHarnessStart } from "../terminal-ui.js";
 import { assertConfigTrusted } from "../trust.js";
 import { ensureProviderFreshness } from "../updates.js";
@@ -106,6 +107,9 @@ export const runLaunchCommand = async (options: CliOptions): Promise<void> => {
       throw new Error("CodePass did not find any launchable tools in your selected stack. Run `codepass providers` to choose installed tools.");
     }
 
+    const task = await resolveTaskForLaunch(options, config);
+    const routeDecision = await resolveRouteForLaunch(options, config, cwd, task);
+
     console.log(renderHarnessStart(launchableProviders));
 
     await runHarness({
@@ -113,7 +117,16 @@ export const runLaunchCommand = async (options: CliOptions): Promise<void> => {
       config,
       providers: launchableProviders,
       input: process.stdin,
-      output: process.stdout
+      output: process.stdout,
+      task,
+      routeDecision,
+      routeOverrides: routeDecision
+        ? {
+            model: options.model,
+            effort: options.effort,
+            targetProvider: launchableProviders[0]?.name
+          }
+        : undefined
     });
   } catch (error) {
     console.error(chalk.red(error instanceof Error ? error.message : String(error)));

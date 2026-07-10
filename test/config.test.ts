@@ -40,7 +40,7 @@ describe("config", () => {
     expect(loaded.config.harness.providerOrder).toEqual(["codex", "claude"]);
   });
 
-  it("migrates old catalog launch defaults to bootstrap input", async () => {
+  it("migrates old catalog bootstrap defaults to prompt arguments", async () => {
     const cwd = await makeRealTempDir();
     const configPath = path.join(cwd, "codepass.config.json");
     const config = defaultConfig();
@@ -50,21 +50,22 @@ describe("config", () => {
       throw new Error("missing Claude provider");
     }
 
-    claude.args = ["{{sessionPrompt}}"];
-    claude.handoffArgs = ["{{handoffPrompt}}"];
-    claude.integrationType = "pty";
-    delete claude.bootstrapInput;
+    claude.args = [];
+    claude.handoffArgs = [];
+    claude.integrationType = "pty_with_bootstrap_input";
+    claude.bootstrapInput = "{{sessionPrompt}}\n";
     await writeFile(configPath, `${JSON.stringify(config)}\n`, "utf8");
 
     const loaded = await loadConfig(cwd);
     const migratedClaude = loaded.config.harness.providers.find((provider) => provider.name === "claude");
 
     expect(migratedClaude).toMatchObject({
-      args: [],
-      handoffArgs: [],
-      integrationType: "pty_with_bootstrap_input",
-      bootstrapInput: "{{sessionPrompt}}\n"
+      args: ["{{sessionPrompt}}"],
+      handoffArgs: ["{{handoffPrompt}}"],
+      integrationType: "pty"
     });
+    expect(migratedClaude?.args).toEqual(["{{sessionPrompt}}"]);
+    expect(migratedClaude?.bootstrapInput).toBeUndefined();
   });
 
   it("rejects invalid harness provider entries", async () => {
@@ -125,6 +126,16 @@ describe("config", () => {
         idleForMs: 10_000,
         minTranscriptGrowthChars: 2_000
       }
+    });
+  });
+
+  it("keeps task routing opt-in with local telemetry defaults", () => {
+    expect(defaultConfig().routing).toEqual({
+      enabled: false,
+      promptForTask: true,
+      allowOverride: true,
+      askOutcome: true,
+      telemetry: true
     });
   });
 

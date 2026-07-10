@@ -44,6 +44,17 @@ export const applyProviderOrder = (
   }
 });
 
+export const applyRoutingPreference = (
+  config: CodePassConfig,
+  enabled: boolean
+): CodePassConfig => ({
+  ...config,
+  routing: {
+    ...config.routing,
+    enabled
+  }
+});
+
 export const runSetupWizard = async (
   options: SetupOptions
 ): Promise<{ config: CodePassConfig; configPath: string }> => {
@@ -144,7 +155,14 @@ export const runSetupWizard = async (
     log.info("CodePass will keep Cline configurable. Add OpenRouter-specific Cline flags once the Cline CLI is installed and verified.");
   }
 
-  const config = applyProviderOrder(startingConfig, providerOrder);
+  const routingEnabled = unwrapPrompt(await confirm({
+    message: "Enable local task routing and one end-of-session outcome prompt?",
+    initialValue: startingConfig.routing.enabled
+  }));
+  const config = applyRoutingPreference(
+    applyProviderOrder(startingConfig, providerOrder),
+    routingEnabled
+  );
   const configPath = await saveConfig(options.cwd, config, options.configPath);
   outro(`CodePass setup saved: ${configPath}`);
 

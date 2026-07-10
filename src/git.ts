@@ -86,6 +86,39 @@ export const getGitContext = async (
   };
 };
 
+export const getGitSnapshot = async (cwd: string): Promise<GitContext> => {
+  const repo = await isGitRepo(cwd);
+
+  if (!repo) {
+    return {
+      isGitRepo: false,
+      statusShort: "",
+      diffStat: "",
+      diffNameOnly: "",
+      recentDiff: "",
+      changedFiles: []
+    };
+  }
+
+  const [root, statusShort, diffStat, diffNameOnly, changedFiles] = await Promise.all([
+    getGitRoot(cwd),
+    runGit(cwd, ["status", "--short"]),
+    runGit(cwd, ["diff", "--stat"]),
+    runGit(cwd, ["diff", "--name-only"]),
+    getChangedFiles(cwd)
+  ]);
+
+  return {
+    isGitRepo: true,
+    root,
+    statusShort,
+    diffStat,
+    diffNameOnly,
+    recentDiff: "",
+    changedFiles
+  };
+};
+
 export const formatGitContext = (context: GitContext): string => {
   if (!context.isGitRepo) {
     return "No git repository detected.";
@@ -119,13 +152,26 @@ export const formatGitSnapshot = (context: GitContext): string => {
   return [
     `Git root: ${context.root ?? "unknown"}`,
     "",
-    "git status --short:",
-    context.statusShort || "(clean)",
+    `Changed entries: ${context.changedFiles.length}`,
     "",
-    "git diff --stat:",
-    context.diffStat || "(no unstaged diff)",
-    "",
-    "git diff --name-only:",
-    context.diffNameOnly || "(no changed tracked files)"
+    "git diff --stat (capped):",
+    formatCappedLines(context.diffStat, 20, "diff-stat lines") || "(no unstaged diff)"
   ].join("\n");
+};
+
+const formatCappedLines = (value: string, limit: number, label: string): string => {
+  const lines = value.split("\n").filter(Boolean);
+  if (lines.length <= limit) {
+    return lines.join("\n");
+  }
+  return [...lines.slice(0, limit), `[${lines.length - limit} more ${label}; inspect the repository directly]`]
+    .join("\n");
+};
+
+export const formatChangedFiles = (files: string[], limit = 50): string => {
+  const visible = files.slice(0, limit).map((file) => `- ${file}`);
+  if (files.length > limit) {
+    visible.push(`- [${files.length - limit} more changed files; run git status --short]`);
+  }
+  return visible.length > 0 ? visible.join("\n") : "- None.";
 };

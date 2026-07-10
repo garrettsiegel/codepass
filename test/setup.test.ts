@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { defaultConfig } from "../src/config.js";
-import { applyProviderOrder, getSetupState } from "../src/setup.js";
+import { applyProviderOrder, applyRoutingPreference, getSetupState } from "../src/setup.js";
 
 const makeTempDir = async (): Promise<string> => {
   const dir = path.join(os.tmpdir(), `codepass-setup-${Date.now()}-${Math.random()}`);
@@ -19,6 +19,14 @@ describe("setup helpers", () => {
     expect(config.harness.providerOrder).toEqual(["codex", "claude"]);
     expect(config.harness.providers.find((provider) => provider.name === "codex")?.enabled).toBe(true);
     expect(config.harness.providers.find((provider) => provider.name === "cline")?.enabled).toBe(false);
+  });
+
+  it("persists the routing opt-in without changing provider order", () => {
+    const ordered = applyProviderOrder(defaultConfig(), ["codex", "claude"]);
+    const config = applyRoutingPreference(ordered, true);
+
+    expect(config.routing.enabled).toBe(true);
+    expect(config.harness.providerOrder).toEqual(["codex", "claude"]);
   });
 
   it("detects setup state and provider commands from config", async () => {

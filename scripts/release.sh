@@ -34,10 +34,16 @@ if [[ -z "$BUMP" ]]; then
   exit 1
 fi
 
-PNPM="pnpm"
-if ! command -v pnpm >/dev/null 2>&1; then
-  PNPM="$HOME/Library/pnpm/pnpm"
+# Prefer the known-good standalone pnpm binary. On this monorepo the Corepack
+# shim can exist on PATH but fail during package-manager execution.
+PNPM="$HOME/Library/pnpm/pnpm"
+if [[ ! -x "$PNPM" ]]; then
+  PNPM="pnpm"
 fi
+
+# Keep npm cache writes out of a machine-wide cache that may be owned by a
+# different user, while still reading the caller's normal ~/.npmrc credentials.
+export NPM_CONFIG_CACHE="${NPM_CONFIG_CACHE:-${TMPDIR:-/tmp}/codepass-npm-cache}"
 
 echo "==> Checking branch and working tree"
 CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"

@@ -58,7 +58,7 @@ handoff file:
 
 - `.codepass/current/handoff.md` — the shared file every tool reads and updates
 - current working directory
-- git status and diff
+- git status, diff statistics, and changed filenames
 - changed files
 - project instructions like `AGENTS.md`
 - terminal transcript excerpts
@@ -68,8 +68,8 @@ handoff file:
 The active tool is instructed to keep this file updated as it works — CodePass doesn't make any
 extra AI calls to do this, so it costs you nothing beyond what the tool would already use.
 
-> **Note:** Handoff files and session logs under `.codepass/` capture terminal output and git
-> diffs, which can contain secrets (API keys, `.env` changes). Treat them as sensitive. CodePass
+> **Note:** Handoff files and session logs under `.codepass/` capture task text, terminal output,
+> and repository metadata, which can contain secrets. Treat them as sensitive. CodePass
 > writes a `.codepass/.gitignore` so these artifacts stay out of your repo, and best-effort
 > redacts common credential formats before persisting them — but don't share them blindly.
 
@@ -123,6 +123,39 @@ A single provider can override the threshold with a per-provider
 `usageProbe.thresholdPercent` (e.g. set Codex to `80` to switch earlier). Run `codepass doctor` to
 see each probed provider's current 5-hour / weekly usage.
 
+### Task Routing And Model Selection
+
+Task routing is opt-in during setup. When enabled, `codepass` asks for a task if one was not
+provided on the command line, classifies it locally, and selects a model and reasoning effort
+within your saved provider order. It never changes that order or makes network calls for routing.
+
+```sh
+codepass "Investigate the intermittent auth failure"
+codepass --tier deep "Implement the approved plan"
+codepass --model gpt-5.6-sol --effort high "Review the payment migration"
+codepass --no-route "Use the provider defaults for this task"
+```
+
+| Tier | Claude Code | Codex | Typical work |
+|---|---|---|---|
+| `light` | Haiku / low | GPT-5.6 Luna / low | Mechanical edits and exact small changes |
+| `standard` | Sonnet / medium | GPT-5.6 Terra / medium | Planned features, known repros, ordinary maintenance |
+| `deep` | Opus / high | GPT-5.6 Sol / high | Architecture, investigation, security, migrations |
+| `max` | Fable / max | GPT-5.6 Sol / max | Long-horizon or whole-repository work |
+
+GPT-5.6 Codex models are selected only when they appear in the local Codex model cache. If a
+preferred model is not advertised there, CodePass falls back to a broadly available GPT-5.x
+model. Automatic routing never selects `ultra`; pass `--effort ultra` explicitly when the selected
+Codex model advertises support. `codepass session` reports the chosen route, the explicit task
+outcome, and whether the handoff narrative was updated.
+
+`--model` and `--effort` target the first provider in the saved chain. If CodePass later hands off,
+the fallback provider receives its normal tier mapping rather than a possibly incompatible model
+name from the first tool.
+
+Prompts passed through a provider's command-line prompt argument may be briefly visible to other
+local processes through the operating system's process list. Do not put credentials in task text.
+
 ### The Handoff File
 
 `.codepass/current/handoff.md` is the shared continuity layer between tools. Each tool owns the
@@ -161,9 +194,9 @@ CodePass has a built-in catalog of tools with two kinds of integrations:
 
 | Tool | Kind | Enabled by default | Notes |
 |---|---|---|---|
-| Claude Code (`claude`) | Harness | Yes | Bootstrapped with the session prompt. |
-| Codex (`codex`) | Harness | Yes | Bootstrapped with the session prompt. |
-| Google Antigravity (`agy`) | Harness | Yes | Bootstrapped with the session prompt via its `agy` TUI. |
+| Claude Code (`claude`) | Harness | Yes | Receives the session prompt as a positional CLI argument. |
+| Codex (`codex`) | Harness | Yes | Receives the session prompt as a positional CLI argument. |
+| Google Antigravity (`agy`) | Harness | Yes | Uses `agy --prompt-interactive` with the session prompt. |
 | opencode (`opencode`) | Harness | Yes | Launched with `--prompt "{{sessionPrompt}}"`. |
 | Cline (`cline`) | Harness | No | Enable once installed and its model/provider is configured. |
 | Ollama (`ollama`) | Harness | No | Runs a local model (`ollama run llama3.2` by default) — enable once you've pulled a model. It's a plain chat REPL, not an autonomous agent. |
@@ -172,8 +205,8 @@ CodePass has a built-in catalog of tools with two kinds of integrations:
 Run `codepass doctor --all` to see the full catalog with install/setup notes for tools you haven't
 enabled yet.
 
-Some tools don't take a clean prompt argument. For those, CodePass launches the tool and types the
-handoff prompt directly into the terminal after it starts.
+Ollama is the remaining built-in provider that uses a PTY bootstrap input because its chat REPL
+does not expose a prompt argument. CodePass still preserves the same handoff content for it.
 
 ## Commands
 

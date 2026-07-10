@@ -1,11 +1,14 @@
 import type { InteractiveProviderConfig, CodePassConfig } from "./types.js";
 import { isHarnessControllable } from "./provider-catalog.js";
+import type { AppliedRoute } from "./types.js";
+import { applyRouteToLaunch } from "./model-routing.js";
 
 export interface RenderLaunchOptions {
   cwd: string;
   handoffPrompt?: string;
   handoffPath?: string;
   sessionPrompt?: string;
+  route?: AppliedRoute;
 }
 
 export interface ProviderLaunch {
@@ -35,11 +38,12 @@ export const renderInteractiveLaunch = (
     ? renderTemplate(bootstrapTemplate, options)
     : undefined;
 
-  return {
+  const launch = {
     command: provider.command,
     args: argsTemplate.map((arg) => renderTemplate(arg, options)),
     ...(bootstrapInput ? { bootstrapInput } : {})
   };
+  return options.route ? applyRouteToLaunch(launch, options.route) : launch;
 };
 
 // Renders the launch command for the terminal banner. Long arg lists (typically

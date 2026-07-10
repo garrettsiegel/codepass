@@ -5,7 +5,21 @@ import { ensureArtifactsIgnored } from "./artifacts.js";
 import { agentErrorTypeSchema, DEFAULT_CODEPASS_DIR } from "./config.js";
 import { redactSecrets } from "./redact.js";
 import { resolveFromCwd } from "./paths.js";
+import { reasoningEffortSchema, routingTierSchema } from "./routing-config.js";
 import type { HarnessSessionLog, CodePassConfig } from "./types.js";
+
+const routeDecisionSchema = z.object({
+  tier: routingTierSchema,
+  reason: z.string(),
+  signals: z.array(z.string()),
+  source: z.enum(["classifier", "tier_override", "model_override"])
+});
+
+const appliedRouteSchema = routeDecisionSchema.extend({
+  provider: z.string(),
+  model: z.string().optional(),
+  effort: reasoningEffortSchema.optional()
+});
 
 const harnessAttemptLogSchema = z.object({
   provider: z.string(),
@@ -16,7 +30,9 @@ const harnessAttemptLogSchema = z.object({
   endedAt: z.string(),
   exitCode: z.number().nullable(),
   errorType: agentErrorTypeSchema.optional(),
-  transcriptExcerpt: z.string()
+  errorDetail: z.string().optional(),
+  transcriptExcerpt: z.string(),
+  route: appliedRouteSchema.optional()
 });
 
 // Mirrors the HarnessSessionLog type. Session logs are read back from disk (where
@@ -30,7 +46,16 @@ const harnessSessionLogSchema = z.object({
   finalProvider: z.string().optional(),
   success: z.boolean(),
   changedFiles: z.array(z.string()),
-  sessionLogPath: z.string().optional()
+  sessionLogPath: z.string().optional(),
+  task: z.string().optional(),
+  routeDecision: routeDecisionSchema.optional(),
+  outcome: z.enum(["completed", "partial", "failed", "abandoned", "unknown"]).optional(),
+  handoffQuality: z.object({
+    taskInitialized: z.boolean(),
+    narrativeUpdated: z.boolean(),
+    missingSections: z.array(z.string()),
+    placeholdersRemaining: z.array(z.string())
+  }).optional()
 });
 
 const safeTimestamp = (date: Date): string =>
@@ -53,8 +78,11 @@ export const writeSessionLog = async (
     ...log,
     attempts: log.attempts.map((attempt) => ({
       ...attempt,
+      args: attempt.args.map((arg) => redactSecrets(arg)),
+      ...(attempt.errorDetail ? { errorDetail: redactSecrets(attempt.errorDetail) } : {}),
       transcriptExcerpt: redactSecrets(attempt.transcriptExcerpt)
-    }))
+    })),
+    ...(log.task ? { task: redactSecrets(log.task) } : {})
   };
   await writeFile(
     logPath,

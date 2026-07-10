@@ -2,10 +2,12 @@ import type { AgentErrorType, InteractiveProviderConfig } from "./types.js";
 
 export const buildSessionPrompt = (
   handoffPath: string,
-  providerChain: InteractiveProviderConfig[]
+  providerChain: InteractiveProviderConfig[],
+  task?: string
 ): string => [
   "You are running inside CodePass, a harness that can switch coding tools when limits happen.",
   "",
+  ...(task ? ["Complete this task:", task, ""] : []),
   `Keep this shared handoff file updated as you work: ${handoffPath}`,
   "",
   "The handoff file is the continuity layer for the next tool. Update it after completing each subtask — not just at the end — whenever the goal, plan, commands run, blockers, or next steps change.",
@@ -21,7 +23,8 @@ export const buildProviderHandoffPrompt = (
   handoffPath: string,
   fromProvider: string,
   toProvider: string,
-  reason?: AgentErrorType
+  reason?: AgentErrorType,
+  task?: string
 ): string => [
   "You are continuing a CodePass coding session.",
   "",
@@ -31,6 +34,7 @@ export const buildProviderHandoffPrompt = (
   `Current tool: ${toProvider}`,
   `Switch reason: ${reason ?? "unknown"}`,
   "",
+  ...(task ? ["Original task:", task, ""] : []),
   "CodePass cannot transfer private chat state. The handoff file is the shared continuity layer.",
   "After reading it, continue the work and keep your sections of the handoff updated after each subtask (CodePass maintains the mechanical sections automatically). Revise in place rather than appending."
 ].join("\n");

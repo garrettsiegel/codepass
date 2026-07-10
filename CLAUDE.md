@@ -44,6 +44,9 @@ Other supporting modules:
 | `src/provider-catalog.ts`, `src/provider-catalog-data.ts` | **Single source of truth** for every known tool (commands, args, integration type, install/auth notes, `limitPatterns`). Add a tool in `provider-catalog-data.ts` — do not scatter provider details across files. |
 | `src/errors.ts` | Error taxonomy + generic pattern matching (`classifyError`, `matchLimitPattern`, `matchProviderLimitPattern`). |
 | `src/handoff-file.ts` | Builds and maintains the `.codepass/current/handoff.md` continuity artifact and its prompts. |
+| `src/handoff-refresh.ts`, `src/handoff-quality.ts` | Refresh mechanical handoff sections and measure whether the task/narrative was actually recorded. |
+| `src/routing.ts`, `src/model-routing.ts`, `src/launch-routing.ts` | Deterministic task classification, local Codex model discovery, and launch-time routing/overrides. |
+| `src/session-log.ts`, `src/session-outcome.ts` | Persist validated session telemetry and collect the one-time routed-task outcome. |
 | `src/doctor.ts`, `src/provider-health.ts` | `codepass doctor` — provider health checks. |
 | `src/setup.ts`, `src/setup-prompts.ts`, `src/tool-status.ts` | The guided setup wizard: orchestration, clack prompt helpers, tool-availability detection. |
 | `src/updates.ts`, `src/update-runner.ts` | Tool self-update: orchestration + spinner UI, then the runner primitives. |
@@ -86,6 +89,12 @@ Other supporting modules:
 - **PTY vs. pipe fallback.** When `node-pty` can't load, the harness falls back to a piped
   `child_process` (`pty-factory.ts`) that lacks TTY semantics (no resize, degraded interactivity).
   Guard PTY-only calls (e.g. `resize`) for the fallback.
+- **Prompt transport.** Claude, Codex, Antigravity, opencode, and Cline receive the initial or
+  handoff prompt as launch arguments. Ollama is intentionally the bootstrap-input exception.
+  Keep transport prompts out of final transcript excerpts when a tool merely echoes its argv.
+- **Routing is local and opt-in.** The classifier must remain deterministic and fail soft when the
+  Codex model cache is missing. Automatic routing never selects `ultra`; explicit overrides must
+  be validated against the model's advertised reasoning levels.
 
 ## When Something Notable Happens
 

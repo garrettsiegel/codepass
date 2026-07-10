@@ -8,6 +8,7 @@ import {
   mergeCatalogInteractiveProviders
 } from "./provider-catalog.js";
 import type { AgentErrorType, CodePassConfig } from "./types.js";
+import { routingConfigSchema } from "./routing-config.js";
 
 export const DEFAULT_CONFIG_FILE = "codepass.config.json";
 export const DEFAULT_CODEPASS_DIR = ".codepass";
@@ -88,6 +89,7 @@ export const codepassConfigSchema = z.object({
     mode: "prompt",
     includeDisabledProviders: false
   }),
+  routing: routingConfigSchema,
   harness: z.object({
     setupComplete: z.boolean().default(false),
     providerOrder: z.array(z.string()).default(getDefaultProviderOrder()),

@@ -22,17 +22,40 @@ const sampleLog = (): HarnessSessionLog => ({
       provider: "claude",
       label: "Claude Code",
       command: "claude",
-      args: [],
+      args: ["Implement with ANTHROPIC_API_KEY=sk-ant-api03-AbCdEf0123456789ghIJKlMnOp"],
       startedAt: "2026-07-04T10:00:00.000Z",
       endedAt: "2026-07-04T10:03:00.000Z",
       exitCode: 1,
       errorType: "rate_limit",
-      transcriptExcerpt: "exported ANTHROPIC_API_KEY=sk-ant-api03-AbCdEf0123456789ghIJKlMnOp done"
+      transcriptExcerpt: "exported ANTHROPIC_API_KEY=sk-ant-api03-AbCdEf0123456789ghIJKlMnOp done",
+      route: {
+        tier: "standard",
+        reason: "settled plan or known reproduction",
+        signals: ["settled plan or known reproduction"],
+        source: "classifier",
+        provider: "claude",
+        model: "sonnet",
+        effort: "medium"
+      }
     }
   ],
   finalProvider: "codex",
   success: true,
-  changedFiles: ["src/app.ts"]
+  changedFiles: ["src/app.ts"],
+  task: "Implement with ANTHROPIC_API_KEY=sk-ant-api03-AbCdEf0123456789ghIJKlMnOp",
+  routeDecision: {
+    tier: "standard",
+    reason: "settled plan or known reproduction",
+    signals: ["settled plan or known reproduction"],
+    source: "classifier"
+  },
+  outcome: "completed",
+  handoffQuality: {
+    taskInitialized: true,
+    narrativeUpdated: true,
+    missingSections: [],
+    placeholdersRemaining: []
+  }
 });
 
 describe("session log", () => {
@@ -45,6 +68,8 @@ describe("session log", () => {
     const latest = await readLatestSessionLog(cwd, config);
     expect(latest?.finalProvider).toBe("codex");
     expect(latest?.attempts[0]?.provider).toBe("claude");
+    expect(latest?.attempts[0]?.route?.model).toBe("sonnet");
+    expect(latest?.outcome).toBe("completed");
   });
 
   it("redacts secrets in transcript excerpts before persisting", async () => {

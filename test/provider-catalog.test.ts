@@ -33,7 +33,7 @@ describe("provider catalog", () => {
 
     expect(defaultProviders).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ name: "antigravity", integrationType: "pty_with_bootstrap_input", enabled: true }),
+        expect.objectContaining({ name: "antigravity", integrationType: "pty", enabled: true }),
         expect.objectContaining({ name: "opencode", integrationType: "pty", enabled: true })
       ])
     );
@@ -66,30 +66,31 @@ describe("provider catalog", () => {
     });
   });
 
-  it("renders catalog providers with prompt args and bootstrap inputs", () => {
+  it("renders catalog providers with startup-safe prompt arguments", () => {
     const claude = getCatalogEntry("claude");
     const codex = getCatalogEntry("codex");
     const antigravity = getCatalogEntry("antigravity");
 
     expect(claude && catalogEntryToInteractiveProvider(claude)).toMatchObject({
       name: "claude",
-      args: [],
-      handoffArgs: [],
-      integrationType: "pty_with_bootstrap_input",
-      bootstrapInput: "{{sessionPrompt}}\n"
+      args: ["{{sessionPrompt}}"],
+      handoffArgs: ["{{handoffPrompt}}"],
+      integrationType: "pty",
+      bootstrapInput: undefined
     });
     expect(codex && catalogEntryToInteractiveProvider(codex)).toMatchObject({
       name: "codex",
-      args: [],
-      handoffArgs: [],
-      integrationType: "pty_with_bootstrap_input",
-      bootstrapInput: "{{sessionPrompt}}\n"
+      args: ["{{sessionPrompt}}"],
+      handoffArgs: ["{{handoffPrompt}}"],
+      integrationType: "pty",
+      bootstrapInput: undefined
     });
     expect(antigravity && catalogEntryToInteractiveProvider(antigravity)).toMatchObject({
       name: "antigravity",
-      integrationType: "pty_with_bootstrap_input",
-      bootstrapInput: "{{sessionPrompt}}\n",
-      handoffBootstrapInput: "{{handoffPrompt}}\n"
+      args: ["--prompt-interactive", "{{sessionPrompt}}"],
+      handoffArgs: ["--prompt-interactive", "{{handoffPrompt}}"],
+      integrationType: "pty",
+      bootstrapInput: undefined
     });
   });
 

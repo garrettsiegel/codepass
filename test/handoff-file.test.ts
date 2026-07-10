@@ -1,4 +1,4 @@
-import { mkdir, readFile, stat, unlink, writeFile } from "node:fs/promises";
+import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -25,7 +25,13 @@ describe("handoff file helpers", () => {
     const cwd = await makeTempDir();
     const config = defaultConfig();
     const providers = config.harness.providers.filter((provider) => provider.name !== "cline");
-    const livePath = await createHandoffFile(cwd, config, providers, "2026-07-03T17:00:00.000Z");
+    const livePath = await createHandoffFile(
+      cwd,
+      config,
+      providers,
+      "2026-07-03T17:00:00.000Z",
+      "Fix the checkout flow"
+    );
 
     expect(livePath).toBe(getHandoffPaths(cwd, config).livePath);
     await appendHandoffCheckpoint(cwd, config, {
@@ -38,6 +44,7 @@ describe("handoff file helpers", () => {
 
     const content = await readFile(livePath, "utf8");
     expect(content).toContain("CodePass Handoff");
+    expect(content).toContain("- Fix the checkout flow");
     expect(content).toContain("Reason: rate_limit");
     expect(content).toContain("rate limit reached");
 
@@ -118,34 +125,74 @@ describe("handoff file helpers", () => {
     config.harness.handoffPath = "handoff.md";
     const livePath = getHandoffPaths(cwd, config).livePath;
     await writeFile(livePath, "# handoff", "utf8");
-    // A user file that must survive a clear.
+    // User files that must survive a clear, including the extension the unsafe
+    // fallback used to scan and delete.
     const userFile = path.join(cwd, "important.txt");
+    const userMarkdown = path.join(cwd, "README.md");
     await writeFile(userFile, "keep me", "utf8");
+    await writeFile(userMarkdown, "keep me too", "utf8");
 
     const removed = await clearHandoffArtifacts(cwd, config);
 
     // The cwd (and the user's file) must still exist; only the handoff file goes.
     await expect(stat(userFile)).resolves.toBeDefined();
+    await expect(stat(userMarkdown)).resolves.toBeDefined();
     await expect(stat(cwd)).resolves.toBeDefined();
     await expect(stat(livePath)).rejects.toThrow();
     expect(removed).toContain(cwd);
   });
 
-  it("refuses to recursively delete an absolute sessions dir pointing at home", async () => {
+  it("does not scan an unsafe absolute sessions directory", async () => {
+    const cwd = await makeTempDir();
+    const unsafeDir = await makeTempDir();
+    const config = defaultConfig();
+    config.logs.sessionsDir = unsafeDir;
+    const unrelatedJson = path.join(unsafeDir, "important.json");
+    await writeFile(unrelatedJson, "{}", "utf8");
+
+    await clearHandoffArtifacts(cwd, config);
+
+    await expect(stat(unsafeDir)).resolves.toBeDefined();
+    await expect(stat(unrelatedJson)).resolves.toBeDefined();
+  });
+
+  it("does not delete an unrelated exact file from an unsafe handoff path", async () => {
     const cwd = await makeTempDir();
     const config = defaultConfig();
-    config.logs.sessionsDir = os.homedir();
-    const marker = path.join(os.homedir(), `.codepass-guard-marker-${Date.now()}-${Math.random()}`);
-    await writeFile(marker, "keep", "utf8");
+    config.harness.handoffPath = "README.md";
+    const readme = path.join(cwd, "README.md");
+    await writeFile(readme, "user documentation", "utf8");
 
-    try {
-      await clearHandoffArtifacts(cwd, config);
-      // Home directory and its contents must be untouched.
-      await expect(stat(os.homedir())).resolves.toBeDefined();
-      await expect(stat(marker)).resolves.toBeDefined();
-    } finally {
-      await unlink(marker).catch(() => {});
-    }
+    await clearHandoffArtifacts(cwd, config);
+
+    await expect(readFile(readme, "utf8")).resolves.toBe("user documentation");
+  });
+
+  it("does not overwrite a stale handoff when recovery cannot be written", async () => {
+    const cwd = await makeTempDir();
+    const config = defaultConfig();
+    const providers = config.harness.providers.slice(0, 1);
+    const livePath = await createHandoffFile(
+      cwd,
+      config,
+      providers,
+      "2026-07-09T10:00:00.000Z",
+      "Preserve this task"
+    );
+    const blockedRecoveryPath = path.join(
+      getHandoffPaths(cwd, config).archiveDir,
+      "recovered-2026-07-09T11-00-00-000Z.md"
+    );
+    await mkdir(blockedRecoveryPath);
+
+    await expect(createHandoffFile(
+      cwd,
+      config,
+      providers,
+      "2026-07-09T11:00:00.000Z",
+      "Do not write this task"
+    )).rejects.toThrow();
+    await expect(readFile(livePath, "utf8")).resolves.toContain("Preserve this task");
   });
 
   it("builds session and provider handoff prompts with the handoff path", () => {

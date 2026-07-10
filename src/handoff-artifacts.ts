@@ -1,7 +1,7 @@
 import { readdir, rm, unlink } from "node:fs/promises";
 import path from "node:path";
 import { getGitRoot } from "./git.js";
-import { isSafeToRecursivelyDelete, resolveFromCwd } from "./paths.js";
+import { isSafeToRecursivelyDelete, isStrictlyInside, resolveFromCwd } from "./paths.js";
 import type { CodePassConfig } from "./types.js";
 
 export interface HandoffPaths {
@@ -14,38 +14,17 @@ export const getHandoffPaths = (cwd: string, config: CodePassConfig): HandoffPat
   archiveDir: resolveFromCwd(cwd, config.harness.handoffArchiveDir)
 });
 
-// Deletes only files matching `extension` (plus an optional exact file) inside
-// `dir`, leaving the directory itself in place. Used as the safe fallback when a
-// misconfigured artifact path resolves somewhere `rm -rf` must not touch.
-const removeKnownFiles = async (
-  dir: string,
-  extension: string,
-  extraFile?: string
-): Promise<boolean> => {
-  let removedAny = false;
-
-  if (extraFile) {
-    try {
-      await unlink(extraFile);
-      removedAny = true;
-    } catch {
-      // Nothing to remove.
-    }
+const removeExactFile = async (file: string | undefined): Promise<boolean> => {
+  if (!file) {
+    return false;
   }
 
   try {
-    const entries = await readdir(dir);
-    for (const entry of entries) {
-      if (entry.endsWith(extension)) {
-        await unlink(path.join(dir, entry)).catch(() => {});
-        removedAny = true;
-      }
-    }
+    await unlink(file);
+    return true;
   } catch {
-    // Directory missing — nothing to remove.
+    return false;
   }
-
-  return removedAny;
 };
 
 export const clearHandoffArtifacts = async (
@@ -56,13 +35,17 @@ export const clearHandoffArtifacts = async (
   const sessionsDir = resolveFromCwd(cwd, config.logs.sessionsDir);
   const gitRoot = await getGitRoot(cwd);
   const removed: string[] = [];
+  const exactLiveFile = isStrictlyInside(paths.livePath, cwd) &&
+    path.basename(paths.livePath) === "handoff.md"
+    ? paths.livePath
+    : undefined;
 
-  // dir → the exact file / extension we may delete if the dir itself is unsafe
-  // to recurse into.
-  const candidates: Array<{ dir: string; extension: string; extraFile?: string }> = [
-    { dir: path.dirname(paths.livePath), extension: ".md", extraFile: paths.livePath },
-    { dir: paths.archiveDir, extension: ".md" },
-    { dir: sessionsDir, extension: ".json" }
+  // Only the live handoff has an exact safe fallback. Archive/session directories
+  // are all-or-nothing: an unsafe directory is never enumerated.
+  const candidates: Array<{ dir: string; exactFile?: string }> = [
+    { dir: path.dirname(paths.livePath), exactFile: exactLiveFile },
+    { dir: paths.archiveDir },
+    { dir: sessionsDir }
   ];
 
   for (const candidate of candidates) {
@@ -79,13 +62,13 @@ export const clearHandoffArtifacts = async (
       continue;
     }
 
-    // Unsafe to recurse (e.g. handoffPath dirname resolved to the cwd or home).
-    // Delete only the specific known artifact files and keep the directory.
+    // Unsafe to recurse (e.g. a configured path resolves to cwd or home). Never
+    // scan by extension here: that could delete unrelated user files.
     console.warn(
       `CodePass: ${candidate.dir} is not a dedicated .codepass directory; ` +
-        `removing only known artifact files instead of the whole directory.`
+        `${candidate.exactFile ? "removing only the exact live handoff" : "leaving it untouched"}.`
     );
-    if (await removeKnownFiles(candidate.dir, candidate.extension, candidate.extraFile)) {
+    if (await removeExactFile(candidate.exactFile)) {
       removed.push(candidate.dir);
     }
   }

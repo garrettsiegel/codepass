@@ -1,13 +1,12 @@
 import process from "node:process";
 import chalk from "chalk";
-import type { AgentErrorType, HarnessAttemptLog, InteractiveProviderConfig, CodePassConfig } from "./types.js";
+import type { AgentErrorType, AppliedRoute, HarnessAttemptLog, InteractiveProviderConfig, CodePassConfig } from "./types.js";
 import { detectExitFailure, detectLiveFailure, getManualSwitchSequence } from "./failure-detection.js";
 import { formatCommandEcho, renderInteractiveLaunch } from "./interactive-provider.js";
 import type { PtyFactory, PtyProcess } from "./pty-factory.js";
 import { RollingTranscript } from "./transcript.js";
 import { armSessionWatchers, preLaunchUsageGate } from "./harness-watchers.js";
 import { formatUsageProbeMessage, resolveUsageProbe, type UsageProbeOptions } from "./usage-probe.js";
-
 // Runs a single provider in a PTY: mirrors stdin/stdout, watches live output for
 // failures, and resolves with an attempt log once the tool exits or CodePass
 // pauses it (manual switch, idle timeout, or a detected limit).
@@ -18,6 +17,7 @@ export const waitForProvider = async (
   handoffPrompt: string | undefined,
   handoffPath: string,
   sessionPrompt: string,
+  route: AppliedRoute | undefined,
   ptyFactory: PtyFactory,
   input: NodeJS.ReadStream | undefined,
   output: NodeJS.WriteStream | undefined,
@@ -27,7 +27,8 @@ export const waitForProvider = async (
     cwd,
     handoffPath,
     handoffPrompt,
-    sessionPrompt
+    sessionPrompt,
+    route
   });
   const transcript = new RollingTranscript(config.harness.transcriptLimitChars);
   const startedAt = new Date().toISOString();
@@ -48,7 +49,7 @@ export const waitForProvider = async (
     output
   });
   if (gated) {
-    return gated;
+    return { ...gated, ...(route ? { route } : {}) };
   }
 
   output?.write(chalk.cyan(`\nCodePass starting ${provider.label}...\n`));
@@ -74,10 +75,11 @@ export const waitForProvider = async (
       startedAt,
       endedAt: new Date().toISOString(),
       exitCode: 127,
-      errorType: message.toLowerCase().includes("not found") || message.toLowerCase().includes("enoent")
-        ? "command_not_found"
-        : "unknown",
-      transcriptExcerpt: message
+        errorType: message.toLowerCase().includes("not found") || message.toLowerCase().includes("enoent")
+          ? "command_not_found"
+          : "unknown",
+        transcriptExcerpt: message,
+        ...(route ? { route } : {})
     };
   }
 
@@ -236,7 +238,8 @@ export const waitForProvider = async (
         exitCode: event.exitCode,
         errorType,
         errorDetail,
-        transcriptExcerpt
+        transcriptExcerpt,
+        ...(route ? { route } : {})
       });
     });
 

@@ -14,8 +14,17 @@ export {
 export { runHarness } from "./harness.js";
 export { addExecutableBits, ensurePtyHelperExecutable } from "./pty-helper.js";
 export { renderInteractiveLaunch } from "./interactive-provider.js";
+export {
+  applyRouteToLaunch,
+  CLAUDE_ROUTE_PROFILES,
+  CODEX_ROUTE_PROFILES,
+  readCodexModels,
+  resolveProviderRoute
+} from "./model-routing.js";
+export { classifyTask, escalateTier, overrideTier } from "./routing.js";
 export { readLatestSessionLog, writeSessionLog } from "./session-log.js";
-export { applyProviderOrder, getSetupState, runSetupWizard } from "./setup.js";
+export { applyProviderOrder, applyRoutingPreference, getSetupState, runSetupWizard } from "./setup.js";
+export { isRoutingRequested, resolveRouteForLaunch, resolveTaskForLaunch } from "./launch-routing.js";
 export { RollingTranscript } from "./transcript.js";
 export {
   buildNudgeMessage,
@@ -33,7 +42,16 @@ export {
 } from "./usage-probe.js";
 export type { ResolvedUsageProbe, UsageProbeOptions, UsageSnapshot } from "./usage-probe.js";
 export { ensureProviderFreshness } from "./updates.js";
-export { formatGitContext, getChangedFiles, getGitContext, getGitRoot, isGitRepo } from "./git.js";
+export {
+  formatChangedFiles,
+  formatGitContext,
+  formatGitSnapshot,
+  getChangedFiles,
+  getGitContext,
+  getGitRoot,
+  getGitSnapshot,
+  isGitRepo
+} from "./git.js";
 export {
   getCatalogEntry,
   getDefaultInteractiveProviders,
@@ -46,9 +64,15 @@ export {
 } from "./provider-catalog.js";
 export type {
   AgentErrorType,
+  AppliedRoute,
   GitContext,
+  HandoffQuality,
   ProviderIntegrationType,
   ProviderName,
+  ReasoningEffort,
+  RouteDecision,
+  RoutingTier,
+  SessionOutcome,
   CodePassConfig,
   UsageProbeKind,
   UsageProbeSpec

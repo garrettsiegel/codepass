@@ -3,6 +3,30 @@ import type { codepassConfigSchema } from "./config.js";
 
 export type ProviderName = string;
 
+export type RoutingTier = "light" | "standard" | "deep" | "max";
+export type ReasoningEffort = "low" | "medium" | "high" | "xhigh" | "max" | "ultra";
+export type SessionOutcome = "completed" | "partial" | "failed" | "abandoned" | "unknown";
+
+export interface RouteDecision {
+  tier: RoutingTier;
+  reason: string;
+  signals: string[];
+  source: "classifier" | "tier_override" | "model_override";
+}
+
+export interface AppliedRoute extends RouteDecision {
+  provider: ProviderName;
+  model?: string;
+  effort?: ReasoningEffort;
+}
+
+export interface HandoffQuality {
+  taskInitialized: boolean;
+  narrativeUpdated: boolean;
+  missingSections: string[];
+  placeholdersRemaining: string[];
+}
+
 export type ProviderIntegrationType =
   | "pty"
   | "pty_with_bootstrap_input"
@@ -78,6 +102,7 @@ export interface HarnessAttemptLog {
   // ("Codex is at 96% of its weekly limit"). Shown in handoff checkpoints.
   errorDetail?: string;
   transcriptExcerpt: string;
+  route?: AppliedRoute;
 }
 
 export interface HarnessSessionLog {
@@ -90,4 +115,8 @@ export interface HarnessSessionLog {
   success: boolean;
   changedFiles: string[];
   sessionLogPath?: string;
+  task?: string;
+  routeDecision?: RouteDecision;
+  outcome?: SessionOutcome;
+  handoffQuality?: HandoffQuality;
 }
