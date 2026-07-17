@@ -8,7 +8,14 @@ const RATE_LIMIT_PATTERNS = [
   "usage limit",
   "limit reached",
   "session limit",
-  "overloaded"
+  "overloaded",
+  // "at capacity" wording, generic across tools (e.g. Claude Code's "Selected
+  // model is at capacity", "servers are over capacity"). Kept as phrases rather
+  // than the bare word "capacity" so benign lines like "reached disk capacity"
+  // don't trip the status-word branch of the prose guard.
+  "at capacity",
+  "over capacity",
+  "at full capacity"
 ];
 
 const QUOTA_PATTERNS = [

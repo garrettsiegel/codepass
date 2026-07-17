@@ -122,6 +122,58 @@ describe("detectLiveFailure — generic patterns keep the prose guard", () => {
   });
 });
 
+describe("detectLiveFailure — 'at capacity' alerts", () => {
+  const config = defaultConfig();
+
+  it("switches on the real Claude Code capacity banner", () => {
+    // The leading ⚠ is an error indicator, so the strict provider-banner guard
+    // trusts this line even though the banner sits mid-line after the glyph.
+    const provider = makeProvider();
+    const banner = "⚠ Selected model is at capacity. Please try a different model.";
+    expect(detectLiveFailure(`working...\n${banner}\n`, provider, config, [])).toBe(
+      "rate_limit"
+    );
+  });
+
+  it("does not switch when an agent merely discusses capacity in prose", () => {
+    const provider = makeProvider();
+    const line =
+      "The docs say the selected model is at capacity sometimes, so I'll add a retry.";
+    expect(detectLiveFailure(`${line}\n`, provider, config, [])).toBeUndefined();
+  });
+
+  it.each([
+    "Error: model is at capacity, please retry later",
+    "Error: our servers are over capacity right now",
+    "Error: the API is running at full capacity"
+  ])("switches on another tool's capacity wording %j via the generic path", (line) => {
+    // A provider with no curated limitPatterns still catches capacity wording
+    // through the generic RATE_LIMIT family, guarded by the error indicator.
+    const provider = makeProvider({
+      name: "opencode",
+      label: "opencode",
+      limitPatterns: undefined
+    });
+    expect(detectLiveFailure(`${line}\n`, provider, config, [])).toBe("rate_limit");
+  });
+
+  it("does not switch on a plain-prose capacity mention with no status shape", () => {
+    const provider = makeProvider({
+      name: "opencode",
+      label: "opencode",
+      limitPatterns: undefined
+    });
+    expect(
+      detectLiveFailure(
+        "I think the cluster runs at capacity during peak hours.\n",
+        provider,
+        config,
+        []
+      )
+    ).toBeUndefined();
+  });
+});
+
 describe("detectLiveFailure — percentage usage warnings are not limits", () => {
   const config = defaultConfig();
   const provider = makeProvider();

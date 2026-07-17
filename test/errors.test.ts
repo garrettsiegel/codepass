@@ -32,6 +32,12 @@ describe("classifyError", () => {
     expect(classifyError("", "429 too many requests; rate limit reached", 1)).toBe("rate_limit");
   });
 
+  it("detects an 'at capacity' alert as a rate limit", () => {
+    expect(
+      classifyError("", "⚠ Selected model is at capacity. Please try a different model.", 1)
+    ).toBe("rate_limit");
+  });
+
   it("treats a percentage usage warning at exit as a plain nonzero exit", () => {
     expect(
       classifyError(

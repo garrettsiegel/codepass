@@ -29,7 +29,8 @@ const CORE_PROVIDER_CATALOG: ProviderCatalogEntry[] = [
     limitPatterns: [
       "5-hour limit reached",
       "upgrade to increase your usage limit",
-      "you've reached your usage limit"
+      "you've reached your usage limit",
+      "selected model is at capacity"
     ],
     install: "Install Claude Code, then run `claude auth`.",
     auth: "Run `claude auth` and follow the browser login.",
