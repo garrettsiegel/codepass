@@ -10,7 +10,7 @@ dist/
 *.tsbuildinfo
 
 # Runtime artifacts (handoffs, sessions, runs, logs)
-.codepass/
+.keepitmovin/
 
 # Environment
 .env
@@ -28,3 +28,8 @@ pnpm-debug.log*
 
 # Editors
 .idea/
+marketing/
+PLAN2.md
+BRAND.md
+CHANGELOG.md
+GAMEPLAN.md

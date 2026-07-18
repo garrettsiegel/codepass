@@ -1,6 +1,6 @@
-# CLAUDE.md — CodePass
+# CLAUDE.md — keepitmovin
 
-CodePass is an interactive terminal harness for coding agents. It launches a coding tool
+keepitmovin is an interactive terminal harness for coding agents. It launches a coding tool
 (Claude Code, Codex, Antigravity, opencode, Grok Build, Cursor Agent, Aider, Goose, Amp,
 Factory Droid, GitHub Copilot CLI, Cline, Ollama, …) inside a PTY, watches its output, and
 on a recognizable limit/failure builds a handoff file and switches to the next configured provider.
@@ -14,10 +14,10 @@ is the agent-facing build/architecture/gotcha guide.
 Run from the monorepo root (prefer `~/Library/pnpm/pnpm` — see the pnpm PATH gotcha in root AGENTS.md):
 
 ```sh
-~/Library/pnpm/pnpm --filter codepass build   # tsc -> dist/
-~/Library/pnpm/pnpm --filter codepass test    # vitest run
-~/Library/pnpm/pnpm --filter codepass lint    # tsc --noEmit
-~/Library/pnpm/pnpm --filter codepass dev     # tsx src/cli.ts (run the CLI without building)
+~/Library/pnpm/pnpm --filter keepitmovin build   # tsc -> dist/
+~/Library/pnpm/pnpm --filter keepitmovin test    # vitest run
+~/Library/pnpm/pnpm --filter keepitmovin lint    # tsc --noEmit
+~/Library/pnpm/pnpm --filter keepitmovin dev     # tsx src/cli.ts (run the CLI without building)
 ```
 
 Before finishing any task: `build`, `test`, and `lint` must all pass. Then run root `pnpm build`
@@ -25,7 +25,7 @@ Before finishing any task: `build`, `test`, and `lint` must all pass. Then run r
 
 ## Architecture
 
-CodePass has a single execution mode — the interactive harness (`src/harness.ts`, the `codepass`
+keepitmovin has a single execution mode — the interactive harness (`src/harness.ts`, the `kim`
 experience). It spawns a provider in a PTY (`node-pty`, with a piped-`child_process` fallback),
 mirrors stdin/stdout, keeps a `RollingTranscript`, watches live output for failures, and hands off
 on failure or `Ctrl+]`. `runHarness` (the orchestration loop) is split across three modules:
@@ -41,14 +41,14 @@ Other supporting modules:
 
 | Module | Role |
 |---|---|
-| `src/config.ts` | Zod schema (`codepassConfigSchema`) — the config contract + defaults. All config shape changes go here. |
-| `src/provider-catalog.ts`, `src/provider-catalog-data.ts`, `src/provider-catalog-extra.ts`, `src/provider-catalog-types.ts` | **Single source of truth** for every known tool (commands, args, integration type, install/auth notes, `limitPatterns`). Add core tools in `provider-catalog-data.ts` and opt-in tools in `provider-catalog-extra.ts` — do not scatter provider details across files. |
+| `src/config.ts` | Zod schema (`keepitmovinConfigSchema`) — the config contract + defaults. All config shape changes go here. |
+| `src/provider-catalog.ts`, `src/provider-catalog-data.ts`, `src/provider-catalog-more.ts`, `src/provider-catalog-extra.ts`, `src/provider-catalog-types.ts` | **Single source of truth** for every known tool (commands, args, integration type, install/auth notes, `limitPatterns`). The nine fully-supported tools live in `-data.ts` (part 1 + the `PROVIDER_CATALOG` assembler) and `-more.ts` (part 2), split only to stay under 250 LOC; catalog order across the two drives the default fallback chain. Hidden tools (`supportLevel: "hidden"`) live in `-extra.ts` — kept in the catalog so existing configs keep launching, but excluded from defaults, the setup wizard, and docs (see `isHiddenCatalogEntry`/`isHiddenProviderName`). Do not scatter provider details across other files. |
 | `src/errors.ts` | Error taxonomy + generic pattern matching (`classifyError`, `matchLimitPattern`, `matchProviderLimitPattern`). |
-| `src/handoff-file.ts` | Builds and maintains the `.codepass/current/handoff.md` continuity artifact and its prompts. |
+| `src/handoff-file.ts` | Builds and maintains the `.keepitmovin/current/handoff.md` continuity artifact and its prompts. |
 | `src/handoff-refresh.ts`, `src/handoff-quality.ts` | Refresh mechanical handoff sections and measure whether the task/narrative was actually recorded. |
 | `src/routing.ts`, `src/model-routing.ts`, `src/launch-routing.ts` | Deterministic task classification, local Codex model discovery, and launch-time routing/overrides. |
 | `src/session-log.ts`, `src/session-outcome.ts` | Persist validated session telemetry and collect the one-time routed-task outcome. |
-| `src/doctor.ts`, `src/provider-health.ts` | `codepass doctor` — provider health checks. |
+| `src/doctor.ts`, `src/provider-health.ts` | `kim doctor` — provider health checks. |
 | `src/setup.ts`, `src/setup-prompts.ts`, `src/tool-status.ts` | The guided setup wizard: orchestration, clack prompt helpers, tool-availability detection. |
 | `src/updates.ts`, `src/update-runner.ts` | Tool self-update: orchestration + spinner UI, then the runner primitives. |
 | `src/cli.ts`, `src/cli-options.ts`, `src/commands/*.ts` | `commander` command wiring; each command's logic lives in its own `src/commands/<name>.ts`. |
@@ -58,13 +58,13 @@ Other supporting modules:
 
 - ESM throughout: import with explicit `.js` specifiers (e.g. `from "./config.js"`), TypeScript
   `module`/`moduleResolution` NodeNext.
-- The zod schema in `config.ts` is the contract; `types.ts` mirrors it (`CodePassConfig = z.infer<…>`).
+- The zod schema in `config.ts` is the contract; `types.ts` mirrors it (`KeepitmovinConfig = z.infer<…>`).
 - To add/modify a provider, edit the `PROVIDER_CATALOG` entry in `provider-catalog-data.ts`; defaults
   flow out through `getDefaultInteractiveProviders` / `mergeCatalogInteractiveProviders`
   (`provider-catalog.ts`).
 - Files stay ≤250 LOC — split by extracting a focused module (see the harness/setup/updates/doctor
   splits above) rather than letting one file grow.
-- Artifacts live under `.codepass/` (handoffs, sessions).
+- Artifacts live under `.keepitmovin/` (handoffs, sessions).
 
 ## Gotchas
 
@@ -90,10 +90,11 @@ Other supporting modules:
 - **PTY vs. pipe fallback.** When `node-pty` can't load, the harness falls back to a piped
   `child_process` (`pty-factory.ts`) that lacks TTY semantics (no resize, degraded interactivity).
   Guard PTY-only calls (e.g. `resize`) for the fallback.
-- **Prompt transport.** Claude, Codex, Antigravity, opencode, Grok Build, Cursor Agent, Factory Droid,
-  and Cline receive the initial or handoff prompt as launch arguments. Ollama, Aider, Goose, Amp,
-  and GitHub Copilot CLI use PTY bootstrap paste (their one-shot prompt flags exit after a turn).
-  Keep transport prompts out of final transcript excerpts when a tool merely echoes its argv.
+- **Prompt transport.** Claude, Codex, Antigravity, opencode, Grok Build, Cursor Agent (and hidden
+  Cline, Factory Droid) receive the initial or handoff prompt as launch arguments. Kimi CLI, GitHub
+  Copilot CLI, Ollama (and hidden Aider, Goose, Amp) use PTY bootstrap paste (their one-shot prompt
+  flags exit after a turn). Keep transport prompts out of final transcript excerpts when a tool
+  merely echoes its argv.
 - **Routing is local and opt-in.** The classifier must remain deterministic and fail soft when the
   Codex model cache is missing. Automatic routing never selects `ultra`; explicit overrides must
   be validated against the model's advertised reasoning levels.

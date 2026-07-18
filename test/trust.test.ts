@@ -8,10 +8,10 @@ import {
   computeCustomProviders,
   UntrustedConfigError
 } from "../src/trust.js";
-import type { CodePassConfig, InteractiveProviderConfig } from "../src/types.js";
+import type { KeepitmovinConfig, InteractiveProviderConfig } from "../src/types.js";
 
 const makeTempDir = async (prefix: string): Promise<string> => {
-  const dir = path.join(os.tmpdir(), `codepass-${prefix}-${Date.now()}-${Math.random()}`);
+  const dir = path.join(os.tmpdir(), `kim-${prefix}-${Date.now()}-${Math.random()}`);
   await mkdir(dir, { recursive: true });
   return dir;
 };
@@ -26,14 +26,14 @@ const customProvider: InteractiveProviderConfig = {
   integrationType: "pty"
 };
 
-const withCustomProvider = (): CodePassConfig => {
+const withCustomProvider = (): KeepitmovinConfig => {
   const config = defaultConfig();
   config.harness.providers = [...config.harness.providers, customProvider];
   return config;
 };
 
-const writeConfigFile = async (dir: string, config: CodePassConfig): Promise<string> => {
-  const configPath = path.join(dir, "codepass.config.json");
+const writeConfigFile = async (dir: string, config: KeepitmovinConfig): Promise<string> => {
+  const configPath = path.join(dir, "keepitmovin.config.json");
   await writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, "utf8");
   return configPath;
 };

@@ -1,4 +1,4 @@
-import type { InteractiveProviderConfig, CodePassConfig } from "./types.js";
+import type { InteractiveProviderConfig, KeepitmovinConfig } from "./types.js";
 import { isHarnessControllable } from "./provider-catalog.js";
 import type { AppliedRoute } from "./types.js";
 import { applyRouteToLaunch } from "./model-routing.js";
@@ -62,12 +62,12 @@ export const formatCommandEcho = (command: string, args: string[]): string => {
 };
 
 export const getInteractiveProviderMap = (
-  config: CodePassConfig
+  config: KeepitmovinConfig
 ): Map<string, InteractiveProviderConfig> =>
   new Map(config.harness.providers.map((provider) => [provider.name, provider]));
 
 export const getEnabledInteractiveProviders = (
-  config: CodePassConfig
+  config: KeepitmovinConfig
 ): InteractiveProviderConfig[] => {
   const providerMap = getInteractiveProviderMap(config);
 

@@ -15,7 +15,7 @@ describe("renderInteractiveLaunch", () => {
       },
       {
         cwd: "/tmp/project",
-        handoffPath: "/tmp/project/.codepass/current/handoff.md",
+        handoffPath: "/tmp/project/.keepitmovin/current/handoff.md",
         sessionPrompt: "keep the handoff updated"
       }
     );
@@ -26,7 +26,7 @@ describe("renderInteractiveLaunch", () => {
         "keep the handoff updated",
         "--add-dir",
         "/tmp/project",
-        "/tmp/project/.codepass/current/handoff.md"
+        "/tmp/project/.keepitmovin/current/handoff.md"
       ]
     });
   });
@@ -59,13 +59,13 @@ describe("renderInteractiveLaunch", () => {
         handoffArgs: [],
         integrationType: "pty_with_bootstrap_input",
         bootstrapInput:
-          "Read the CodePass handoff at {{handoffPath}} and continue the session (keep that file updated as you work).\n",
+          "Read the keepitmovin handoff at {{handoffPath}} and continue the session (keep that file updated as you work).\n",
         handoffBootstrapInput:
-          "Read the CodePass handoff at {{handoffPath}} first, then continue from where the previous tool left off.\n"
+          "Read the keepitmovin handoff at {{handoffPath}} first, then continue from where the previous tool left off.\n"
       },
       {
         cwd: "/tmp/project",
-        handoffPath: "/tmp/project/.codepass/current/handoff.md",
+        handoffPath: "/tmp/project/.keepitmovin/current/handoff.md",
         handoffPrompt: "read the handoff and continue"
       }
     );
@@ -74,7 +74,7 @@ describe("renderInteractiveLaunch", () => {
       command: "aider",
       args: [],
       bootstrapInput:
-        "Read the CodePass handoff at /tmp/project/.codepass/current/handoff.md first, then continue from where the previous tool left off.\n"
+        "Read the keepitmovin handoff at /tmp/project/.keepitmovin/current/handoff.md first, then continue from where the previous tool left off.\n"
     });
   });
 });
@@ -91,7 +91,7 @@ describe("formatCommandEcho", () => {
   });
 
   it("collapses a long prompt argument to a count marker", () => {
-    const longPrompt = "read the handoff file at /tmp/project/.codepass/current/handoff.md and continue the work exactly where the previous tool left off";
+    const longPrompt = "read the handoff file at /tmp/project/.keepitmovin/current/handoff.md and continue the work exactly where the previous tool left off";
     expect(formatCommandEcho("cline", [longPrompt])).toBe("cline [+1 arg]");
   });
 

@@ -13,13 +13,13 @@ afterEach(() => {
 
 describe("CLI option recovery", () => {
   it("reads root options before a subcommand", () => {
-    process.argv = ["node", "codepass", "--cwd", "/tmp/project", "doctor"];
+    process.argv = ["node", "kim", "--cwd", "/tmp/project", "doctor"];
 
     expect(readOptionFromArgv(["--cwd"])).toBe("/tmp/project");
   });
 
   it("does not reinterpret task text after -- as CLI options", () => {
-    process.argv = ["node", "codepass", "--", "review", "--cwd", "/untrusted"];
+    process.argv = ["node", "kim", "--", "review", "--cwd", "/untrusted"];
 
     expect(readOptionFromArgv(["--cwd"])).toBeUndefined();
   });
@@ -27,13 +27,13 @@ describe("CLI option recovery", () => {
   it("protects an explicit task that has the same name as a subcommand", () => {
     expect(splitExplicitTaskArgv([
       "node",
-      "codepass",
+      "kim",
       "--cwd",
       "/tmp/project",
       "--",
       "init"
     ])).toEqual({
-      argv: ["node", "codepass", "--cwd", "/tmp/project", EXPLICIT_TASK_SENTINEL],
+      argv: ["node", "kim", "--cwd", "/tmp/project", EXPLICIT_TASK_SENTINEL],
       task: "init"
     });
   });

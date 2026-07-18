@@ -13,7 +13,7 @@ import { classifyTask } from "../src/routing.js";
 const makeCodexHome = async (
   models: Array<{ slug: string; efforts: string[] }>
 ): Promise<string> => {
-  const dir = path.join(os.tmpdir(), `codepass-models-${Date.now()}-${Math.random()}`);
+  const dir = path.join(os.tmpdir(), `kim-models-${Date.now()}-${Math.random()}`);
   await mkdir(dir, { recursive: true });
   await writeFile(path.join(dir, "models_cache.json"), JSON.stringify({
     models: models.map((model) => ({

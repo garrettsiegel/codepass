@@ -1,4 +1,8 @@
-# GAMEPLAN.md — CodePass Project History
+# GAMEPLAN.md — Project History
+
+> **Historical document.** The product was renamed **keepitmovin** (command `kim`) in July 2026.
+> Earlier names in this file — "CodePass" and, before that, "relay" — are the names it had at the
+> time; they're preserved here as history, not current usage. For today's docs see the README.
 
 This file is the project's planning history, combined into one place: the original product brief,
 the harness design vision, and the V1 execution log. It exists so anyone (including a future agent

@@ -1,8 +1,8 @@
-# CodePass demo — records a real handoff between two (simulated) coding agents.
+# keepitmovin demo — records a real handoff between two (simulated) coding agents.
 # Prereq: `brew install vhs`.  Run from the repo root:  vhs demo/demo.tape
-# Renders public/codepass-demo.gif.
+# Renders public/kim-demo.gif.
 
-Output public/codepass-demo.gif
+Output public/kim-demo.gif
 
 Require bash
 
@@ -18,31 +18,37 @@ Set Theme "Dracula"
 Set TypingSpeed 70ms
 Set Framerate 22
 
-# --- Setup (hidden): a clean, neutral working dir and a `codepass` shim so the
-#     recorded prompt shows a bare `codepass` and on-screen paths stay neutral. ---
+# --- Setup (hidden): a clean, neutral working dir and a `kim` shim so the
+#     recorded prompt shows a bare `kim` and on-screen paths stay neutral.
+#     Also pre-trusts the demo config (its custom `bash agent.sh` tools would
+#     otherwise trip the trust prompt) using a throwaway KEEPITMOVIN_HOME. ---
 Hide
 Type `export PS1='$ '` Enter
-Type `CLI="$PWD/dist/cli.js"` Enter
-Type `codepass() { node "$CLI" "$@"; }` Enter
-Type `D=/tmp/codepass-demo; rm -rf "$D"; mkdir -p "$D"` Enter
+Type `REPO="$PWD"` Enter
+Type `CLI="$REPO/dist/cli.js"` Enter
+Type `kim() { node "$CLI" "$@"; }` Enter
+Type `D=/tmp/kim-demo; rm -rf "$D"; mkdir -p "$D"` Enter
+Type `export KEEPITMOVIN_HOME="$D/.cphome"` Enter
 Type `cp demo/agent.sh "$D/agent.sh"; chmod +x "$D/agent.sh"` Enter
-Type `cp demo/codepass.config.json "$D/codepass.config.json"` Enter
+Type `cp demo/keepitmovin.config.json "$D/keepitmovin.config.json"` Enter
+Type `node "$REPO/demo/trust-demo.mjs" "$D/keepitmovin.config.json"` Enter
 Type `cd "$D"` Enter
 Type `clear` Enter
 Show
 
 # --- Recorded session ---
 Sleep 700ms
-Type "codepass"
+Type "kim"
 Sleep 600ms
 Enter
 
-# "Start with this chain?" — accept the default (Yes, launch).
+# "Start with this order?" — accept the default (Yes, start).
 Sleep 2200ms
 Enter
 
-# Harness starts, the first agent works and hits its usage limit, CodePass shows
-# the commercial break, and the second agent reads the handoff and continues.
+# keepitmovin starts the first tool; it works and hits its usage limit, keepitmovin
+# shows the "Switching tools" notice, and the second tool reads the handoff and
+# continues.
 Sleep 15s
 
 # Final hold on the "continuing" frame.

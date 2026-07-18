@@ -9,7 +9,7 @@ export const runHandoffCommand = async (options: CliOptions): Promise<void> => {
     const { config } = await loadConfig(cwd, options.config);
     const handoff = await summarizeHandoffFile(cwd, config);
 
-    console.log(chalk.bold("CodePass handoff file"));
+    console.log(chalk.bold("keepitmovin handoff file"));
     console.log("Path:", handoff.path);
     console.log("Status:", handoff.exists ? chalk.green("exists") : chalk.yellow("not created yet"));
     console.log("");

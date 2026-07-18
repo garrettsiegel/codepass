@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import type { HarnessAttemptLog, InteractiveProviderConfig, CodePassConfig } from "./types.js";
+import type { HarnessAttemptLog, InteractiveProviderConfig, KeepitmovinConfig } from "./types.js";
 import { startHandoffWatcher } from "./handoff-refresh.js";
 import {
   checkUsageThreshold,
@@ -50,7 +50,7 @@ export const preLaunchUsageGate = async (args: {
 
 export interface SessionWatcherContext {
   provider: InteractiveProviderConfig;
-  config: CodePassConfig;
+  config: KeepitmovinConfig;
   cwd: string;
   handoffPath: string;
   resolvedProbe: ResolvedUsageProbe | undefined;

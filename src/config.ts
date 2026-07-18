@@ -8,14 +8,14 @@ import {
   mergeCatalogInteractiveProviders,
   reconcileProviderOrder
 } from "./provider-catalog.js";
-import type { AgentErrorType, CodePassConfig } from "./types.js";
+import type { AgentErrorType, KeepitmovinConfig } from "./types.js";
 import { routingConfigSchema } from "./routing-config.js";
 
-export const DEFAULT_CONFIG_FILE = "codepass.config.json";
-export const DEFAULT_CODEPASS_DIR = ".codepass";
-export const DEFAULT_SESSIONS_DIR = ".codepass/sessions";
-export const DEFAULT_HANDOFF_PATH = ".codepass/current/handoff.md";
-export const DEFAULT_HANDOFF_ARCHIVE_DIR = ".codepass/handoffs";
+export const DEFAULT_CONFIG_FILE = "keepitmovin.config.json";
+export const DEFAULT_KEEPITMOVIN_DIR = ".keepitmovin";
+export const DEFAULT_SESSIONS_DIR = ".keepitmovin/sessions";
+export const DEFAULT_HANDOFF_PATH = ".keepitmovin/current/handoff.md";
+export const DEFAULT_HANDOFF_ARCHIVE_DIR = ".keepitmovin/handoffs";
 export const DEFAULT_TRANSCRIPT_LIMIT_CHARS = 80_000;
 
 export const agentErrorTypeSchema = z.enum([
@@ -62,7 +62,7 @@ export const interactiveProviderConfigSchema = z.object({
   usageProbe: usageProbeSpecSchema.optional()
 });
 
-export const codepassConfigSchema = z.object({
+export const keepitmovinConfigSchema = z.object({
   fallbackOn: z.array(agentErrorTypeSchema).default([
     "rate_limit",
     "quota_exceeded",
@@ -161,22 +161,22 @@ export const codepassConfigSchema = z.object({
 });
 
 /**
- * Writes the `.codepass/.gitignore` marker so handoff files and session logs
+ * Writes the `.keepitmovin/.gitignore` marker so handoff files and session logs
  * (which contain terminal output and git diffs) never get committed to the
  * user's repo. Prints a one-time notice when it first creates the marker.
  */
-export const ensureCodepassIgnored = async (cwd: string): Promise<void> => {
-  const created = await ensureArtifactsIgnored(path.join(cwd, DEFAULT_CODEPASS_DIR));
+export const ensureKeepitmovinIgnored = async (cwd: string): Promise<void> => {
+  const created = await ensureArtifactsIgnored(path.join(cwd, DEFAULT_KEEPITMOVIN_DIR));
   if (created) {
     console.log(
-      "CodePass: added .codepass/.gitignore so local handoff and session artifacts stay out of git."
+      "keepitmovin: added .keepitmovin/.gitignore so local handoff and session artifacts stay out of git."
     );
   }
 };
 
-const normalizeConfig = (config: CodePassConfig): CodePassConfig => {
+const normalizeConfig = (config: KeepitmovinConfig): KeepitmovinConfig => {
   const providers = mergeCatalogInteractiveProviders(config.harness.providers);
-  return codepassConfigSchema.parse({
+  return keepitmovinConfigSchema.parse({
     ...config,
     harness: {
       ...config.harness,
@@ -190,7 +190,7 @@ const normalizeConfig = (config: CodePassConfig): CodePassConfig => {
   });
 };
 
-export const defaultConfig = (): CodePassConfig => normalizeConfig(codepassConfigSchema.parse({}));
+export const defaultConfig = (): KeepitmovinConfig => normalizeConfig(keepitmovinConfigSchema.parse({}));
 
 export const resolveConfigPath = (cwd: string, configPath?: string): string => {
   if (!configPath) {
@@ -203,14 +203,14 @@ export const resolveConfigPath = (cwd: string, configPath?: string): string => {
 export const loadConfig = async (
   cwd: string,
   configPath?: string
-): Promise<{ config: CodePassConfig; path?: string }> => {
+): Promise<{ config: KeepitmovinConfig; path?: string }> => {
   const resolvedPath = resolveConfigPath(cwd, configPath);
 
   try {
     await access(resolvedPath);
   } catch {
     if (configPath) {
-      throw new Error(`CodePass config not found: ${resolvedPath}`);
+      throw new Error(`keepitmovin config not found: ${resolvedPath}`);
     }
 
     return { config: defaultConfig() };
@@ -218,7 +218,7 @@ export const loadConfig = async (
 
   const raw = await readFile(resolvedPath, "utf8");
   const parsed = JSON.parse(raw) as unknown;
-  return { config: normalizeConfig(codepassConfigSchema.parse(parsed)), path: resolvedPath };
+  return { config: normalizeConfig(keepitmovinConfigSchema.parse(parsed)), path: resolvedPath };
 };
 
 export const initConfig = async (
@@ -228,11 +228,11 @@ export const initConfig = async (
   const resolvedPath = resolveConfigPath(cwd, configPath);
   let createdConfig = false;
 
-  await mkdir(path.join(cwd, DEFAULT_CODEPASS_DIR), { recursive: true });
+  await mkdir(path.join(cwd, DEFAULT_KEEPITMOVIN_DIR), { recursive: true });
   await mkdir(path.join(cwd, DEFAULT_SESSIONS_DIR), { recursive: true });
   await mkdir(path.dirname(path.join(cwd, DEFAULT_HANDOFF_PATH)), { recursive: true });
   await mkdir(path.join(cwd, DEFAULT_HANDOFF_ARCHIVE_DIR), { recursive: true });
-  await ensureCodepassIgnored(cwd);
+  await ensureKeepitmovinIgnored(cwd);
 
   try {
     await access(resolvedPath);
@@ -250,19 +250,19 @@ export const initConfig = async (
 
 export const saveConfig = async (
   cwd: string,
-  config: CodePassConfig,
+  config: KeepitmovinConfig,
   configPath?: string
 ): Promise<string> => {
   const resolvedPath = resolveConfigPath(cwd, configPath);
   await mkdir(path.dirname(resolvedPath), { recursive: true });
-  await mkdir(path.join(cwd, DEFAULT_CODEPASS_DIR), { recursive: true });
+  await mkdir(path.join(cwd, DEFAULT_KEEPITMOVIN_DIR), { recursive: true });
   await mkdir(path.join(cwd, DEFAULT_SESSIONS_DIR), { recursive: true });
   await mkdir(path.dirname(path.join(cwd, DEFAULT_HANDOFF_PATH)), { recursive: true });
   await mkdir(path.join(cwd, DEFAULT_HANDOFF_ARCHIVE_DIR), { recursive: true });
-  await ensureCodepassIgnored(cwd);
+  await ensureKeepitmovinIgnored(cwd);
   await writeFile(
     resolvedPath,
-    `${JSON.stringify(codepassConfigSchema.parse(config), null, 2)}\n`,
+    `${JSON.stringify(keepitmovinConfigSchema.parse(config), null, 2)}\n`,
     "utf8"
   );
   return resolvedPath;

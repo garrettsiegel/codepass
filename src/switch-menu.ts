@@ -21,7 +21,7 @@ export const chooseSwitchProvider: SwitchSelector = async (choices, reason) => {
   }
 
   const selectedName = await select({
-    message: `CodePass noticed ${reason}. Which tool should continue?`,
+    message: `keepitmovin noticed ${reason}. Which tool should continue?`,
     options: choices.map((choice) => ({
       label: choice.provider.label,
       value: choice.provider.name

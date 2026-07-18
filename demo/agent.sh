@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# CodePass demo stub — simulates a coding agent's terminal output so the README
+# keepitmovin demo stub — simulates a coding agent's terminal output so the README
 # GIF can show a *real* handoff without needing live tools or real rate limits.
-# The CodePass harness around this (launch, limit detection, commercial break,
+# The keepitmovin harness around this (launch, limit detection, commercial break,
 # handoff-driven relaunch) all runs for real; only this output is simulated.
 set -u
 
@@ -19,13 +19,13 @@ if [ "$role" = "claude" ]; then
   line "● Updating docs…" 0.8
   printf '\n'
   sleep 0.3
-  # This exact line is demo-a's `limitPatterns` entry — CodePass detects it live
+  # This exact line is demo-a's `limitPatterns` entry — keepitmovin detects it live
   # and pauses this tool, then hands off to the next provider.
   line "Claude usage limit reached · resets in 4h 12m" 1.0
-  # Stay alive briefly; CodePass kills us the moment it sees the banner above.
+  # Stay alive briefly; keepitmovin kills us the moment it sees the banner above.
   sleep 3
 else
-  line "> Reading .codepass/current/handoff.md" 0.8
+  line "> Reading .keepitmovin/current/handoff.md" 0.8
   line "  Picking up where Claude Code left off…" 0.9
   line "● Continuing: finish auth module refactor" 0.8
   line "  ✓ Wired refreshed token into the request client" 0.7

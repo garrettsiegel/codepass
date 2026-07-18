@@ -11,7 +11,7 @@ import {
   type ProviderHealth
 } from "./provider-health.js";
 import { readProviderUsage, resolveUsageProbe, type UsageSnapshot } from "./usage-probe.js";
-import type { CodePassConfig } from "./types.js";
+import type { KeepitmovinConfig } from "./types.js";
 
 export type { ProviderHealth } from "./provider-health.js";
 
@@ -40,7 +40,7 @@ export interface DoctorOptions {
 
 const resolveSessionsDir = (
   cwd: string,
-  config: CodePassConfig,
+  config: KeepitmovinConfig,
   configPath?: string
 ): string => {
   const baseDir = configPath ? path.dirname(configPath) : cwd;

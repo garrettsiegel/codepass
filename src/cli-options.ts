@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import type { ReasoningEffort, RoutingTier } from "./types.js";
 
-export const EXPLICIT_TASK_SENTINEL = "__codepass_explicit_task__";
+export const EXPLICIT_TASK_SENTINEL = "__keepitmovin_explicit_task__";
 
 export interface CliOptions {
   all?: boolean;

@@ -1,7 +1,7 @@
 import { readdir, readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { CodePassConfig, InteractiveProviderConfig, UsageProbeSpec } from "./types.js";
+import type { KeepitmovinConfig, InteractiveProviderConfig, UsageProbeSpec } from "./types.js";
 
 // Snapshot of a tool's own reported usage, read from its local session files.
 export interface UsageSnapshot {
@@ -170,7 +170,7 @@ export interface ResolvedUsageProbe {
 // without usageProbe (e.g. Claude Code) always resolve to undefined.
 export const resolveUsageProbe = (
   provider: InteractiveProviderConfig,
-  config: CodePassConfig
+  config: KeepitmovinConfig
 ): ResolvedUsageProbe | undefined => {
   const spec = provider.usageProbe;
   const settings = config.harness.usageProbe;
@@ -246,5 +246,5 @@ export const formatUsageProbeMessage = (
   snapshot: UsageSnapshot,
   thresholdPercent: number
 ): string =>
-  `CodePass usage probe: ${label} is at ${Math.round(snapshot.usedPercent)}% of its ` +
+  `keepitmovin usage probe: ${label} is at ${Math.round(snapshot.usedPercent)}% of its ` +
   `${describeWindow(snapshot)} limit (threshold ${thresholdPercent}%).`;

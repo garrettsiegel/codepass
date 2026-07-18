@@ -15,7 +15,7 @@ import { buildStackOptions, chooseProviderOrder, renderCatalogPreview, unwrapPro
 import { renderProviderOrderSummary } from "./terminal-ui.js";
 import { getSetupState } from "./tool-status.js";
 import { assertConfigTrusted } from "./trust.js";
-import type { InteractiveProviderConfig, CodePassConfig } from "./types.js";
+import type { InteractiveProviderConfig, KeepitmovinConfig } from "./types.js";
 
 export { getSetupState, type ToolStatus } from "./tool-status.js";
 
@@ -29,9 +29,9 @@ export interface SetupOptions {
 }
 
 export const applyProviderOrder = (
-  config: CodePassConfig,
+  config: KeepitmovinConfig,
   providerOrder: string[]
-): CodePassConfig => ({
+): KeepitmovinConfig => ({
   ...config,
   harness: {
     ...config.harness,
@@ -45,9 +45,9 @@ export const applyProviderOrder = (
 });
 
 export const applyRoutingPreference = (
-  config: CodePassConfig,
+  config: KeepitmovinConfig,
   enabled: boolean
-): CodePassConfig => ({
+): KeepitmovinConfig => ({
   ...config,
   routing: {
     ...config.routing,
@@ -57,7 +57,7 @@ export const applyRoutingPreference = (
 
 export const runSetupWizard = async (
   options: SetupOptions
-): Promise<{ config: CodePassConfig; configPath: string }> => {
+): Promise<{ config: KeepitmovinConfig; configPath: string }> => {
   // Gate untrusted config-defined commands before getSetupState probes them.
   const loaded = await loadConfig(options.cwd, options.configPath);
   await assertConfigTrusted({
@@ -74,25 +74,25 @@ export const runSetupWizard = async (
   }).length;
 
   if (selectableProviderCount === 0) {
-    throw new Error("CodePass did not find any installed terminal coding tools yet. Install one from the Add Later list, then run `codepass` again.");
+    throw new Error("keepitmovin didn't find any coding tools installed yet. Install one (Claude Code, Codex, …), then run `kim` again.");
   }
 
-  intro(chalk.bgCyan.black(" CodePass "));
+  intro(chalk.bgCyan.black(" keepitmovin "));
   box(
     [
-      "CodePass starts your coding tool inside one terminal harness.",
-      "If that tool hits a limit, CodePass helps the next tool continue with the shared handoff file."
+      "keepitmovin runs your coding tools in one terminal, in a fallback order you choose.",
+      "When one tool hits a limit, it hands the next tool your handoff file so you keep going."
     ].join("\n"),
-    "Overview",
+    "What this does",
     {
       rounded: true
     }
   );
   note(
     [
-      "1. Choose the tools you want in your stack.",
-      "2. CodePass starts the first one for you.",
-      "3. If limits or failures appear, CodePass switches tools with .codepass/current/handoff.md."
+      "1. Pick the tools you want and the order to try them.",
+      "2. keepitmovin starts the first installed tool for you.",
+      "3. If it hits a limit, keepitmovin switches tools using .keepitmovin/current/handoff.md."
     ].join("\n"),
     "How it works"
   );
@@ -100,14 +100,14 @@ export const runSetupWizard = async (
   if (startingConfig.updates.checkOnStart) {
     note(
       startingConfig.updates.mode === "always"
-        ? "CodePass checks selected tools on each start and runs their native updater when one is verified."
-        : "CodePass checks selected tools on each start and asks before running verified updater commands.",
+        ? "On each start, keepitmovin checks your tools for updates and installs them automatically."
+        : "On each start, keepitmovin checks your tools for updates and asks before installing any.",
       "Tool updates"
     );
   }
 
   if (options.showAllCatalog) {
-    note(renderCatalogPreview(state.catalogStatuses), "Popular guided tools");
+    note(renderCatalogPreview(state.catalogStatuses), "Other tools");
   }
 
   const stackOptions = buildStackOptions(startingConfig.harness.providers, state.toolStatuses);
@@ -119,7 +119,7 @@ export const runSetupWizard = async (
     .map((provider: InteractiveProviderConfig) => provider.name);
 
   const selectedProviders = unwrapPrompt(await groupMultiselect<string>({
-    message: "Choose your stack",
+    message: "Which tools do you want to use?",
     options: stackOptions,
     initialValues,
     required: true,
@@ -131,7 +131,7 @@ export const runSetupWizard = async (
   );
 
   if (selectedProviders.length === 0) {
-    throw new Error("Choose at least one installed tool for your CodePass stack.");
+    throw new Error("Pick at least one installed tool to continue.");
   }
 
   const providerOrder = await chooseProviderOrder(
@@ -142,7 +142,7 @@ export const runSetupWizard = async (
     startingConfig.harness.providers,
     providerOrder
   );
-  note(chainSummary, "Selected stack");
+  note(chainSummary, "Your fallback order");
 
   const wantsOpenRouter = selectedProviders.includes("cline")
     ? unwrapPrompt(await confirm({
@@ -152,11 +152,11 @@ export const runSetupWizard = async (
     : false;
 
   if (wantsOpenRouter) {
-    log.info("CodePass will keep Cline configurable. Add OpenRouter-specific Cline flags once the Cline CLI is installed and verified.");
+    log.info("keepitmovin will keep Cline configurable. Add OpenRouter-specific Cline flags once the Cline CLI is installed and verified.");
   }
 
   const routingEnabled = unwrapPrompt(await confirm({
-    message: "Enable local task routing and one end-of-session outcome prompt?",
+    message: "Turn on smart task routing? (picks a model per task; asks how it went at the end)",
     initialValue: startingConfig.routing.enabled
   }));
   const config = applyRoutingPreference(
@@ -164,7 +164,7 @@ export const runSetupWizard = async (
     routingEnabled
   );
   const configPath = await saveConfig(options.cwd, config, options.configPath);
-  outro(`CodePass setup saved: ${configPath}`);
+  outro(`Saved. Run \`kim\` to start. (config: ${configPath})`);
 
   return { config, configPath };
 };

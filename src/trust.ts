@@ -8,7 +8,7 @@ import {
   getCatalogEntry,
   isCatalogHarnessProvider
 } from "./provider-catalog.js";
-import type { InteractiveProviderConfig, CodePassConfig } from "./types.js";
+import type { InteractiveProviderConfig, KeepitmovinConfig } from "./types.js";
 
 const TRUST_STORE_FILE = "trusted-configs.json";
 
@@ -36,7 +36,7 @@ const arraysEqual = (a: string[], b: string[]): boolean =>
  * every configured provider with `<command> --version`.
  */
 export const computeCustomProviders = (
-  config: CodePassConfig
+  config: KeepitmovinConfig
 ): InteractiveProviderConfig[] =>
   config.harness.providers.filter((provider) => {
     const entry = getCatalogEntry(provider.name);
@@ -57,8 +57,8 @@ export const computeCustomProviders = (
 export const hashConfig = (rawConfig: string): string =>
   createHash("sha256").update(rawConfig).digest("hex");
 
-export const resolveCodepassHome = (override?: string): string =>
-  override ?? process.env.CODEPASS_HOME ?? path.join(os.homedir(), ".codepass");
+export const resolveKeepitmovinHome = (override?: string): string =>
+  override ?? process.env.KEEPITMOVIN_HOME ?? path.join(os.homedir(), ".keepitmovin");
 
 const trustStorePath = (home: string): string => path.join(home, TRUST_STORE_FILE);
 
@@ -95,7 +95,7 @@ export const trustConfigFile = async (
   home?: string
 ): Promise<void> => {
   const raw = await readFile(configPath, "utf8");
-  await recordConfigTrust(resolveCodepassHome(home), configPath, hashConfig(raw));
+  await recordConfigTrust(resolveKeepitmovinHome(home), configPath, hashConfig(raw));
 };
 
 const describeProviders = (providers: InteractiveProviderConfig[]): string =>
@@ -112,7 +112,7 @@ const defaultConfirm = async (
 ): Promise<boolean> => {
   const answer = await confirm({
     message:
-      `${configPath} defines custom tool commands that CodePass would run:\n` +
+      `${configPath} defines custom tool commands that keepitmovin would run:\n` +
       `${describeProviders(providers)}\n` +
       "Only trust this if you recognize these commands. Run them?"
   });
@@ -120,7 +120,7 @@ const defaultConfirm = async (
 };
 
 export interface AssertConfigTrustedOptions {
-  config: CodePassConfig;
+  config: KeepitmovinConfig;
   /** Absolute path of the loaded config file, or undefined when using built-in defaults. */
   configPath?: string;
   /** Whether we can prompt (a TTY is attached). */
@@ -130,7 +130,7 @@ export interface AssertConfigTrustedOptions {
     providers: InteractiveProviderConfig[],
     configPath: string
   ) => Promise<boolean>;
-  /** Override the trust-store home (tests); defaults to CODEPASS_HOME / ~/.codepass. */
+  /** Override the trust-store home (tests); defaults to KEEPITMOVIN_HOME / ~/.keepitmovin. */
   home?: string;
 }
 
@@ -157,7 +157,7 @@ export const assertConfigTrusted = async (
     return;
   }
 
-  const home = resolveCodepassHome(options.home);
+  const home = resolveKeepitmovinHome(options.home);
   const raw = await readFile(options.configPath, "utf8");
   const hash = hashConfig(raw);
   const store = await readTrustStore(home);
@@ -170,9 +170,9 @@ export const assertConfigTrusted = async (
 
   if (!options.interactive) {
     throw new UntrustedConfigError(
-      `${options.configPath} defines custom tool commands that CodePass will not run without your consent:\n` +
+      `${options.configPath} defines custom tool commands that keepitmovin will not run without your consent:\n` +
         `${commandList}\n` +
-        "Run `codepass` in an interactive terminal once to review and trust them."
+        "Run `kim` in an interactive terminal once to review and trust them."
     );
   }
 
@@ -181,7 +181,7 @@ export const assertConfigTrusted = async (
 
   if (!approved) {
     throw new UntrustedConfigError(
-      "CodePass will not run untrusted custom tool commands. Aborting."
+      "keepitmovin will not run untrusted custom tool commands. Aborting."
     );
   }
 

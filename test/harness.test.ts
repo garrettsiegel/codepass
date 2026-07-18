@@ -61,7 +61,7 @@ class FakePty implements PtyProcess {
 }
 
 const makeTempDir = async (): Promise<string> => {
-  const dir = path.join(os.tmpdir(), `codepass-harness-${Date.now()}-${Math.random()}`);
+  const dir = path.join(os.tmpdir(), `kim-harness-${Date.now()}-${Math.random()}`);
   await mkdir(dir, { recursive: true });
   return dir;
 };
@@ -140,7 +140,7 @@ describe("runHarness", () => {
     expect(summary.attempts[0]?.route).toMatchObject({ tier: "standard", model: "sonnet" });
     expect(summary.outcome).toBe("completed");
     expect(summary.handoffQuality).toMatchObject({ taskInitialized: true, narrativeUpdated: false });
-    const handoff = await readFile(path.join(cwd, ".codepass", "current", "handoff.md"), "utf8");
+    const handoff = await readFile(path.join(cwd, ".keepitmovin", "current", "handoff.md"), "utf8");
     expect(handoff).toContain("The final provider process exited cleanly. Reported task outcome: completed.");
     expect(handoff).not.toContain("Complete this task:");
   });
@@ -202,7 +202,7 @@ describe("runHarness", () => {
     expect(launches[0]?.args[0]).toContain("Keep this shared handoff file updated");
     expect(launches[0]?.args[0]).toContain("Fix checkout");
     expect(launches[1]?.args[0]).toContain("Switch reason: rate_limit");
-    const handoff = await readFile(path.join(cwd, ".codepass", "current", "handoff.md"), "utf8");
+    const handoff = await readFile(path.join(cwd, ".keepitmovin", "current", "handoff.md"), "utf8");
     expect(handoff).toContain("Reason: rate_limit");
     expect(handoff).toContain("rate limit reached");
   });
@@ -275,7 +275,7 @@ describe("runHarness", () => {
         handoffArgs: [],
         integrationType: "pty_with_bootstrap_input",
         bootstrapInput:
-          "Read the CodePass handoff at {{handoffPath}} and continue the session (keep that file updated as you work).\n"
+          "Read the keepitmovin handoff at {{handoffPath}} and continue the session (keep that file updated as you work).\n"
       }
     ];
     config.harness.providerOrder = ["fake-bootstrap"];
@@ -296,8 +296,8 @@ describe("runHarness", () => {
     });
 
     expect(summary.success).toBe(true);
-    expect(ptys[0]?.writes[0]).toContain("Read the CodePass handoff at");
-    expect(ptys[0]?.writes[0]).toContain(".codepass/current/handoff.md");
+    expect(ptys[0]?.writes[0]).toContain("Read the keepitmovin handoff at");
+    expect(ptys[0]?.writes[0]).toContain(".keepitmovin/current/handoff.md");
   });
 
   it("holds early keystrokes until the bootstrap paste lands, then flushes them", async () => {
@@ -1013,7 +1013,7 @@ describe("runHarness", () => {
     expect(summary.attempts[0]?.errorType).toBe("rate_limit");
     expect(summary.attempts[0]?.errorDetail).toContain("97% of its weekly limit");
     expect(summary.finalProvider).toBe("claude");
-    const handoff = await readFile(path.join(cwd, ".codepass", "current", "handoff.md"), "utf8");
+    const handoff = await readFile(path.join(cwd, ".keepitmovin", "current", "handoff.md"), "utf8");
     expect(handoff).toContain("Reason: rate_limit");
     expect(handoff).toContain("97% of its weekly limit");
   });
@@ -1215,7 +1215,7 @@ describe("runHarness", () => {
       output: new PassThrough() as NodeJS.WriteStream
     });
 
-    const content = await readFile(path.join(cwd, ".codepass", "current", "handoff.md"), "utf8");
+    const content = await readFile(path.join(cwd, ".keepitmovin", "current", "handoff.md"), "utf8");
     expect(content).toContain("## Repository Snapshot");
     expect(content).not.toContain("Recent diff:");
     // The watcher rewrote the snapshot to a time after the session-start line —
@@ -1260,7 +1260,7 @@ describe("runHarness", () => {
       output: new PassThrough() as NodeJS.WriteStream
     });
 
-    expect(pty?.writes.some((write) => write.includes("Please update the CodePass handoff file"))).toBe(true);
+    expect(pty?.writes.some((write) => write.includes("Please update the keepitmovin handoff file"))).toBe(true);
   });
 
   it("does not nudge when the nudge is disabled", async () => {
@@ -1296,6 +1296,6 @@ describe("runHarness", () => {
       output: new PassThrough() as NodeJS.WriteStream
     });
 
-    expect(pty?.writes.some((write) => write.includes("Please update the CodePass handoff file"))).toBe(false);
+    expect(pty?.writes.some((write) => write.includes("Please update the keepitmovin handoff file"))).toBe(false);
   });
 });

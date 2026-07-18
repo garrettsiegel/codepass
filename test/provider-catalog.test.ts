@@ -18,6 +18,7 @@ describe("provider catalog", () => {
       expect.arrayContaining([
         "claude",
         "codex",
+        "kimi",
         "cline",
         "antigravity",
         "opencode",
@@ -63,14 +64,18 @@ describe("provider catalog", () => {
       ])
     );
     // Exact default chain order (catalog position drives new-install order).
-    // Opt-in tools (Cline, Ollama, Aider, Goose, Amp, Droid, Copilot) are excluded.
+    // The nine fully-supported tools, Ollama last as the local fallback. Hidden
+    // tools (Cline, Aider, Goose, Amp, Droid, OpenRouter) are excluded.
     expect(defaultOrder).toEqual([
       "claude",
       "codex",
+      "kimi",
       "antigravity",
       "opencode",
       "grok",
-      "cursor"
+      "cursor",
+      "copilot",
+      "ollama"
     ]);
   });
 
@@ -86,16 +91,13 @@ describe("provider catalog", () => {
     });
   });
 
-  it("adds Aider, Goose, Amp, Factory Droid, and Copilot as disabled-by-default harness tools", () => {
-    for (const name of ["aider", "goose", "amp", "droid", "copilot"] as const) {
+  it("keeps Aider, Goose, Amp, and Factory Droid as opt-in harness catalog entries", () => {
+    for (const name of ["aider", "goose", "amp", "droid"] as const) {
       const entry = getCatalogEntry(name);
       expect(entry).toMatchObject({
         group: "harness",
         controllable: true,
         defaultEnabled: false
-      });
-      expect(getDefaultInteractiveProviders().find((provider) => provider.name === name)).toMatchObject({
-        enabled: false
       });
     }
 
@@ -125,6 +127,22 @@ describe("provider catalog", () => {
       args: ["{{sessionPrompt}}"],
       handoffArgs: ["{{handoffPrompt}}"]
     });
+  });
+
+  it("adds Kimi CLI and GitHub Copilot CLI as fully-supported default tools", () => {
+    for (const name of ["kimi", "copilot"] as const) {
+      expect(getCatalogEntry(name)).toMatchObject({
+        group: "harness",
+        controllable: true,
+        defaultEnabled: true,
+        integrationType: "pty_with_bootstrap_input"
+      });
+    }
+
+    const kimi = getCatalogEntry("kimi");
+    // Kimi's -p is one-shot, so it launches interactively and pastes the handoff.
+    expect(kimi).toMatchObject({ command: "kimi", args: [], handoffArgs: [] });
+    expect(kimi?.limitPatterns).toEqual(expect.arrayContaining(["[provider.rate_limit]"]));
     expect(getCatalogEntry("copilot")).toMatchObject({
       command: "copilot",
       integrationType: "pty_with_bootstrap_input",
@@ -145,17 +163,19 @@ describe("provider catalog", () => {
     })).toBe(false);
   });
 
-  it("adds ollama as a disabled-by-default local harness provider", () => {
+  it("adds ollama as the default-enabled local last-resort harness provider", () => {
     const ollama = getCatalogEntry("ollama");
 
     expect(ollama).toMatchObject({
       group: "harness",
       controllable: true,
-      defaultEnabled: false,
+      defaultEnabled: true,
       integrationType: "pty_with_bootstrap_input"
     });
+    // Ollama is the final entry in the default fallback chain.
+    expect(getDefaultProviderOrder().at(-1)).toBe("ollama");
     expect(getDefaultInteractiveProviders().find((provider) => provider.name === "ollama")).toMatchObject({
-      enabled: false
+      enabled: true
     });
   });
 
@@ -205,9 +225,9 @@ describe("provider catalog", () => {
       handoffArgs: ["{{handoffPrompt}}"],
       integrationType: "pty",
       controllable: true,
-      bootstrapInput: undefined,
-      limitPatterns: undefined
+      bootstrapInput: undefined
     });
+    expect(grok?.limitPatterns).toEqual(expect.arrayContaining(["you hit your weekly limit"]));
     expect(grok?.defaultEnabled).toBe(true);
     expect(grok?.updateCommands).toEqual([
       { label: "Update Grok Build", command: "grok", args: ["update"] }
@@ -220,9 +240,9 @@ describe("provider catalog", () => {
       handoffArgs: ["{{handoffPrompt}}"],
       integrationType: "pty",
       controllable: true,
-      bootstrapInput: undefined,
-      limitPatterns: undefined
+      bootstrapInput: undefined
     });
+    expect(cursor?.limitPatterns).toEqual(expect.arrayContaining(["you've hit your usage limit"]));
     expect(cursor?.defaultEnabled).toBe(true);
     expect(cursor?.updateCommands).toEqual([
       { label: "Update Cursor Agent", command: "agent", args: ["update"] }
@@ -265,9 +285,12 @@ describe("provider catalog", () => {
       handoffArgs: ["{{handoffPrompt}}"]
     });
     // Merge only extends providers; caller-owned providerOrder is unchanged.
-    expect(merged.map((provider) => provider.name)).toEqual(
-      expect.arrayContaining(["claude", "grok", "cursor", "aider", "goose", "amp", "droid", "copilot"])
-    );
+    // Hidden catalog tools (Aider, Goose, Amp, Droid) are never appended.
+    const mergedNames = merged.map((provider) => provider.name);
+    expect(mergedNames).toEqual(expect.arrayContaining(["claude", "grok", "cursor", "copilot"]));
+    for (const hidden of ["aider", "goose", "amp", "droid"]) {
+      expect(mergedNames).not.toContain(hidden);
+    }
   });
 
   it("carries provider-specific limit banners onto the launchable provider", () => {

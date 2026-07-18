@@ -10,16 +10,16 @@ export const runSessionCommand = async (options: CliOptions): Promise<void> => {
     const latest = await readLatestSessionLog(cwd, config);
 
     if (!latest) {
-      console.log(chalk.yellow("No CodePass harness sessions found yet."));
+      console.log(chalk.yellow("No sessions yet."));
       return;
     }
 
-    console.log(chalk.bold("Latest CodePass session"));
+    console.log(chalk.bold("Latest keepitmovin session"));
     console.log("Started:", latest.startedAt);
     console.log("Ended:", latest.endedAt);
-    console.log("Providers:", latest.providerOrder.join(" -> "));
+    console.log("Tools:", latest.providerOrder.join(" -> "));
     console.log("Attempts:", latest.attempts.length);
-    console.log("Provider process:", latest.success ? "exited cleanly" : "did not complete cleanly");
+    console.log("Tool process:", latest.success ? "exited cleanly" : "did not exit cleanly");
     console.log("Changed files:", latest.changedFiles.length);
     if (latest.routeDecision) {
       console.log("Route:", `${latest.routeDecision.tier} (${latest.routeDecision.reason})`);

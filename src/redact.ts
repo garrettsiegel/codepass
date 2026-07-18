@@ -1,6 +1,6 @@
 // Best-effort secret redaction for persisted artifacts (handoff files, session
 // logs). Terminal transcripts and git diffs frequently echo credentials; this
-// scrubs the well-known token shapes before CodePass writes them to disk. It is
+// scrubs the well-known token shapes before keepitmovin writes them to disk. It is
 // defense-in-depth, not a guarantee — novel or truncated secrets can slip
 // through, so artifacts are still treated as sensitive (and gitignored).
 

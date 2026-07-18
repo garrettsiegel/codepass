@@ -2,21 +2,21 @@ import { cancel, isCancel, select, text } from "@clack/prompts";
 import { getChangedFiles } from "./git.js";
 import { overrideTier, classifyTask } from "./routing.js";
 import type { CliOptions } from "./cli-options.js";
-import type { CodePassConfig, RouteDecision, RoutingTier } from "./types.js";
+import type { KeepitmovinConfig, RouteDecision, RoutingTier } from "./types.js";
 
 const hasExplicitRouteOverride = (options: CliOptions): boolean =>
   Boolean(options.tier || options.model || options.effort);
 
 export const isRoutingRequested = (
   options: CliOptions,
-  config: CodePassConfig,
+  config: KeepitmovinConfig,
   task: string | undefined
 ): boolean =>
   Boolean(task) && options.route !== false && (config.routing.enabled || hasExplicitRouteOverride(options));
 
 export const resolveTaskForLaunch = async (
   options: CliOptions,
-  config: CodePassConfig
+  config: KeepitmovinConfig
 ): Promise<string | undefined> => {
   const provided = options.task?.trim();
   if (provided) {
@@ -38,8 +38,8 @@ export const resolveTaskForLaunch = async (
     validate: (value) => value?.trim() ? undefined : "Enter a task or disable routing for this run."
   });
   if (isCancel(task)) {
-    cancel("CodePass canceled.");
-    throw new Error("CodePass canceled.");
+    cancel("keepitmovin canceled.");
+    throw new Error("keepitmovin canceled.");
   }
   return task.trim();
 };
@@ -58,15 +58,15 @@ const chooseInteractiveTier = async (decision: RouteDecision): Promise<RoutingTi
     initialValue: decision.tier
   });
   if (isCancel(choice)) {
-    cancel("CodePass canceled.");
-    throw new Error("CodePass canceled.");
+    cancel("keepitmovin canceled.");
+    throw new Error("keepitmovin canceled.");
   }
   return choice;
 };
 
 export const resolveRouteForLaunch = async (
   options: CliOptions,
-  config: CodePassConfig,
+  config: KeepitmovinConfig,
   cwd: string,
   task: string | undefined
 ): Promise<RouteDecision | undefined> => {

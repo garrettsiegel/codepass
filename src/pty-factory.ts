@@ -104,7 +104,7 @@ export const defaultPtyFactory: PtyFactory = (command, args, options) => {
       const detail = error instanceof Error ? error.message : String(error);
       process.stderr.write(
         chalk.yellow(
-          `\nCodePass could not start a real terminal (node-pty: ${detail}).\n` +
+          `\nkeepitmovin could not start a real terminal (node-pty: ${detail}).\n` +
             "Falling back to non-interactive pipes — interactive tools like Claude Code may hang.\n" +
             "Fix: reinstall dependencies, or make node-pty's prebuilt spawn-helper executable.\n\n"
         )

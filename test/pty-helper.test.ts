@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { addExecutableBits } from "../src/pty-helper.js";
 
 const makeTempFile = (mode: number): string => {
-  const dir = path.join(os.tmpdir(), `codepass-pty-${Date.now()}-${Math.random()}`);
+  const dir = path.join(os.tmpdir(), `kim-pty-${Date.now()}-${Math.random()}`);
   mkdirSync(dir, { recursive: true });
   const file = path.join(dir, "spawn-helper");
   writeFileSync(file, "#!/bin/sh\n", "utf8");
@@ -29,6 +29,6 @@ describe("addExecutableBits", () => {
   });
 
   it("returns false for a missing file", () => {
-    expect(addExecutableBits(path.join(os.tmpdir(), "codepass-does-not-exist-helper"))).toBe(false);
+    expect(addExecutableBits(path.join(os.tmpdir(), "kim-does-not-exist-helper"))).toBe(false);
   });
 });

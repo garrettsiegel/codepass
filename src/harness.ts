@@ -4,7 +4,7 @@ import type {
   HarnessAttemptLog,
   HarnessSessionLog,
   InteractiveProviderConfig,
-  CodePassConfig,
+  KeepitmovinConfig,
   RouteDecision,
   SessionOutcome
 } from "./types.js";
@@ -17,7 +17,7 @@ import {
   buildSessionPrompt,
   createHandoffFile
 } from "./handoff-file.js";
-import { describeProviderChain, getEnabledInteractiveProviders } from "./interactive-provider.js";
+import { getEnabledInteractiveProviders } from "./interactive-provider.js";
 import { waitForProvider } from "./harness-session.js";
 import { defaultPtyFactory, type PtyFactory } from "./pty-factory.js";
 import { writeSessionLog } from "./session-log.js";
@@ -32,7 +32,7 @@ import { chooseSessionOutcome, type OutcomeSelector } from "./session-outcome.js
 export type { PtyFactory, PtyFactoryOptions, PtyProcess } from "./pty-factory.js";
 export interface HarnessOptions {
   cwd: string;
-  config: CodePassConfig;
+  config: KeepitmovinConfig;
   providers?: InteractiveProviderConfig[];
   ptyFactory?: PtyFactory;
   switchSelector?: SwitchSelector;
@@ -74,13 +74,10 @@ export const runHarness = async (
   let repeatedFailures = 0;
 
   if (providers.length === 0) {
-    throw new Error("CodePass harness has no enabled providers. Run `codepass setup` or `codepass providers`.");
+    throw new Error("No tools are turned on. Run `kim setup` or `kim providers`.");
   }
 
-  options.output?.write(chalk.bold("CodePass harness\n"));
-  options.output?.write(`Provider chain: ${describeProviderChain(providers)}\n`);
-  options.output?.write(chalk.gray("CodePass cannot transfer private provider chat state. The handoff file is the shared continuity layer.\n"));
-  options.output?.write(chalk.gray(`Manual switch: press ${options.config.harness.manualSwitchKey} any time CodePass is running a tool.\n`));
+  options.output?.write(chalk.gray("keepitmovin can't copy a tool's private chat history — the handoff file carries your context to the next tool.\n"));
 
   const handoffPath = await createHandoffFile(
     options.cwd,
@@ -113,7 +110,7 @@ export const runHarness = async (
     if (route) {
       options.output?.write(chalk.gray(
         `Route: ${route.tier} -> ${provider.label}` +
-        `${route.model ? ` / ${route.model}` : " / provider default"}` +
+        `${route.model ? ` / ${route.model}` : " / tool default"}` +
         `${route.effort ? ` / ${route.effort}` : ""}\n`
       ));
     }
@@ -167,8 +164,8 @@ export const runHarness = async (
       note: [
         attempt.errorDetail,
         selected
-          ? "CodePass is switching tools. The next tool should read the handoff file first and continue from there."
-          : "CodePass stopped because no next tool was selected or available."
+          ? "keepitmovin is switching tools. The next tool should read the handoff file first and continue from there."
+          : "keepitmovin stopped because no next tool was selected or available."
       ]
         .filter(Boolean)
         .join(" ")
@@ -187,7 +184,7 @@ export const runHarness = async (
       attempt.errorType,
       options.task
     );
-    options.output?.write(chalk.green(`Starting ${selected.provider.label} with the CodePass handoff file.\n`));
+    options.output?.write(chalk.green(`Starting ${selected.provider.label} with your handoff file.\n`));
     index = selected.index;
   }
 
@@ -219,7 +216,7 @@ export const runHarness = async (
   });
   const archivePath = await archiveHandoffFile(options.cwd, options.config, sessionId);
   if (archivePath) {
-    options.output?.write(chalk.gray(`CodePass archived handoff: ${archivePath}\n`));
+    options.output?.write(chalk.gray(`keepitmovin archived handoff: ${archivePath}\n`));
   }
 
   let handoffQuality;
@@ -244,7 +241,7 @@ export const runHarness = async (
     ...(handoffQuality ? { handoffQuality } : {})
   };
   const sessionLogPath = await writeSessionLog(options.cwd, options.config, log);
-  options.output?.write(chalk.gray(`\nCodePass session log: ${sessionLogPath}\n`));
+  options.output?.write(chalk.gray(`\nkeepitmovin session log: ${sessionLogPath}\n`));
 
   return { ...log, sessionLogPath };
 };

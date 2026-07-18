@@ -2,7 +2,7 @@ import { execa } from "execa";
 import path from "node:path";
 import { DEFAULT_CONFIG_FILE, loadConfig } from "./config.js";
 import { getCatalogEntry, getProviderCatalog, type ProviderCatalogEntry } from "./provider-catalog.js";
-import type { InteractiveProviderConfig, CodePassConfig } from "./types.js";
+import type { InteractiveProviderConfig, KeepitmovinConfig } from "./types.js";
 
 export interface ToolStatus {
   name: string;
@@ -11,7 +11,7 @@ export interface ToolStatus {
   available: boolean;
   detail: string;
   group?: "harness" | "guided";
-  integrationType?: CodePassConfig["harness"]["providers"][number]["integrationType"];
+  integrationType?: KeepitmovinConfig["harness"]["providers"][number]["integrationType"];
   controllable?: boolean;
   summary?: string;
   limitation?: string;
@@ -35,7 +35,7 @@ const checkCommand = async (
     command?: string;
     versionArgs?: string[];
     group?: "harness" | "guided";
-    integrationType?: CodePassConfig["harness"]["providers"][number]["integrationType"];
+    integrationType?: KeepitmovinConfig["harness"]["providers"][number]["integrationType"];
     controllable?: boolean;
     summary?: string;
     limitation?: string;
@@ -146,7 +146,7 @@ export const getSetupState = async (
   cwd: string,
   configPath?: string
 ): Promise<{
-  config: CodePassConfig;
+  config: KeepitmovinConfig;
   configPath: string;
   exists: boolean;
   toolStatuses: ToolStatus[];

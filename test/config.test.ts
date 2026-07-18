@@ -2,10 +2,10 @@ import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { codepassConfigSchema, defaultConfig, initConfig, loadConfig } from "../src/config.js";
+import { keepitmovinConfigSchema, defaultConfig, initConfig, loadConfig } from "../src/config.js";
 
 const makeRealTempDir = async (): Promise<string> => {
-  const dir = path.join(os.tmpdir(), `codepass-config-${Date.now()}-${Math.random()}`);
+  const dir = path.join(os.tmpdir(), `kim-config-${Date.now()}-${Math.random()}`);
   await mkdir(dir, { recursive: true });
   return dir;
 };
@@ -16,22 +16,25 @@ describe("config", () => {
     const loaded = await loadConfig(cwd);
 
     expect(loaded.path).toBeUndefined();
-    expect(loaded.config.harness.providers.map((provider) => provider.name)).toEqual(
+    const defaultNames = loaded.config.harness.providers.map((provider) => provider.name);
+    // Fresh configs list only the fully-supported tools...
+    expect(defaultNames).toEqual(
       expect.arrayContaining([
         "claude",
         "codex",
-        "cline",
+        "kimi",
         "antigravity",
         "opencode",
         "grok",
         "cursor",
-        "aider",
-        "goose",
-        "amp",
-        "droid",
-        "copilot"
+        "copilot",
+        "ollama"
       ])
     );
+    // ...and never the hidden ones (kept in the catalog, off for new users).
+    for (const hidden of ["cline", "aider", "goose", "amp", "droid", "openrouter"]) {
+      expect(defaultNames).not.toContain(hidden);
+    }
     expect(loaded.config.updates).toMatchObject({
       checkOnStart: true,
       mode: "prompt"
@@ -40,7 +43,7 @@ describe("config", () => {
 
   it("loads a valid config file", async () => {
     const cwd = await makeRealTempDir();
-    const configPath = path.join(cwd, "codepass.config.json");
+    const configPath = path.join(cwd, "keepitmovin.config.json");
     const config = defaultConfig();
     config.harness.setupComplete = true;
     config.harness.providerOrder = ["codex", "claude"];
@@ -55,7 +58,7 @@ describe("config", () => {
 
   it("appends newly default-enabled catalog providers to a legacy providerOrder", async () => {
     const cwd = await makeRealTempDir();
-    const configPath = path.join(cwd, "codepass.config.json");
+    const configPath = path.join(cwd, "keepitmovin.config.json");
     const config = defaultConfig();
     config.harness.setupComplete = true;
     // Emulate a pre-1.5 config that predates Grok Build / Cursor Agent.
@@ -87,7 +90,7 @@ describe("config", () => {
 
   it("does not append a provider the user deliberately dropped from the order", async () => {
     const cwd = await makeRealTempDir();
-    const configPath = path.join(cwd, "codepass.config.json");
+    const configPath = path.join(cwd, "keepitmovin.config.json");
     const config = defaultConfig();
     config.harness.setupComplete = true;
     // grok stays configured but the user removed it from their chain.
@@ -101,7 +104,7 @@ describe("config", () => {
 
   it("migrates old catalog bootstrap defaults to prompt arguments", async () => {
     const cwd = await makeRealTempDir();
-    const configPath = path.join(cwd, "codepass.config.json");
+    const configPath = path.join(cwd, "keepitmovin.config.json");
     const config = defaultConfig();
     const claude = config.harness.providers.find((provider) => provider.name === "claude");
 
@@ -130,7 +133,7 @@ describe("config", () => {
   it("rejects invalid harness provider entries", async () => {
     const cwd = await makeRealTempDir();
     await writeFile(
-      path.join(cwd, "codepass.config.json"),
+      path.join(cwd, "keepitmovin.config.json"),
       JSON.stringify({
         harness: {
           providers: [
@@ -150,7 +153,7 @@ describe("config", () => {
     await expect(loadConfig(cwd)).rejects.toThrow();
   });
 
-  it("initializes config and codepass directories", async () => {
+  it("initializes config and kim directories", async () => {
     const cwd = await makeRealTempDir();
 
     const result = await initConfig(cwd);
@@ -159,10 +162,10 @@ describe("config", () => {
     expect(JSON.parse(await readFile(result.configPath, "utf8"))).toMatchObject({
       harness: { providers: expect.any(Array) }
     });
-    await expect(stat(path.join(cwd, ".codepass", "sessions"))).resolves.toMatchObject({
+    await expect(stat(path.join(cwd, ".keepitmovin", "sessions"))).resolves.toMatchObject({
       isDirectory: expect.any(Function)
     });
-    await expect(stat(path.join(cwd, ".codepass", "handoffs"))).resolves.toMatchObject({
+    await expect(stat(path.join(cwd, ".keepitmovin", "handoffs"))).resolves.toMatchObject({
       isDirectory: expect.any(Function)
     });
   });
@@ -207,13 +210,13 @@ describe("config", () => {
     }
 
     codex.usageProbe = { kind: "codex-session-files", thresholdPercent: 80 };
-    const parsed = codepassConfigSchema.parse(config);
+    const parsed = keepitmovinConfigSchema.parse(config);
     const parsedCodex = parsed.harness.providers.find((provider) => provider.name === "codex");
 
     expect(parsedCodex?.usageProbe).toEqual({ kind: "codex-session-files", thresholdPercent: 80 });
 
     expect(() =>
-      codepassConfigSchema.parse({
+      keepitmovinConfigSchema.parse({
         harness: {
           providers: [
             {
@@ -230,9 +233,9 @@ describe("config", () => {
     ).toThrow();
   });
 
-  it("writes a .codepass/.gitignore marker on init and is idempotent", async () => {
+  it("writes a .keepitmovin/.gitignore marker on init and is idempotent", async () => {
     const cwd = await makeRealTempDir();
-    const markerPath = path.join(cwd, ".codepass", ".gitignore");
+    const markerPath = path.join(cwd, ".keepitmovin", ".gitignore");
 
     await initConfig(cwd);
     expect(await readFile(markerPath, "utf8")).toBe("*\n");

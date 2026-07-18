@@ -1,13 +1,13 @@
 import { readFile, stat, writeFile } from "node:fs/promises";
 import { formatChangedFiles, formatGitSnapshot, getChangedFiles, getGitSnapshot } from "./git.js";
 import { redactSecrets } from "./redact.js";
-import type { CodePassConfig } from "./types.js";
+import type { KeepitmovinConfig } from "./types.js";
 
 export const SWITCH_HISTORY_LIMIT = 10;
 export const TRANSCRIPT_EXCERPT_LIMIT = 1_500;
 
 // Agent-owned narrative sections. Staleness for the nudge is measured against
-// changes to THESE, not the file mtime — CodePass's own mechanical refresh
+// changes to THESE, not the file mtime — keepitmovin's own mechanical refresh
 // writes the file every interval, so mtime is never a reliable "stale" signal.
 const NARRATIVE_SECTIONS = [
   "Current Goal",
@@ -76,13 +76,13 @@ const trimSwitchHistory = (content: string, keep: number): string => {
   return replaceSection(content, "Switch History", entries.slice(-keep).join("\n"));
 };
 
-// Rewrites the CodePass-managed mechanical sections in place (Changed Files,
+// Rewrites the keepitmovin-managed mechanical sections in place (Changed Files,
 // Repository Snapshot) and trims Switch History. Race guard: skips the write
 // when the file's mtime changed between read and the git work (the agent just
 // wrote — it's fresh). All failures resolve to false. Never throws.
 export const refreshHandoffFile = async (
   cwd: string,
-  config: CodePassConfig,
+  config: KeepitmovinConfig,
   handoffPath: string
 ): Promise<boolean> => {
   try {
@@ -124,13 +124,13 @@ export const refreshHandoffFile = async (
 };
 
 export const buildNudgeMessage = (handoffPath: string): string =>
-  `Please update the CodePass handoff file now (${handoffPath}): revise Current Goal, ` +
+  `Please update the keepitmovin handoff file now (${handoffPath}): revise Current Goal, ` +
   `Working State, Commands And Checks, Blockers, and Next Step in place. ` +
-  `CodePass maintains the other sections automatically.\n`;
+  `keepitmovin maintains the other sections automatically.\n`;
 
 export interface HandoffWatcherContext {
   cwd: string;
-  config: CodePassConfig;
+  config: KeepitmovinConfig;
   handoffPath: string;
   transcriptLength: () => number; // RollingTranscript text().length
   lastActivityAt: () => number; // epoch ms of last child output OR user input

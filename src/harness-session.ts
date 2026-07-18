@@ -1,7 +1,7 @@
 import process from "node:process";
 import chalk from "chalk";
 import { createBootstrapWriter } from "./bootstrap-input.js";
-import type { AgentErrorType, AppliedRoute, HarnessAttemptLog, InteractiveProviderConfig, CodePassConfig } from "./types.js";
+import type { AgentErrorType, AppliedRoute, HarnessAttemptLog, InteractiveProviderConfig, KeepitmovinConfig } from "./types.js";
 import { detectExitFailure, detectLiveFailure, getManualSwitchSequence } from "./failure-detection.js";
 import { formatCommandEcho, renderInteractiveLaunch } from "./interactive-provider.js";
 import type { PtyFactory, PtyProcess } from "./pty-factory.js";
@@ -11,7 +11,7 @@ import { formatUsageProbeMessage, resolveUsageProbe, type UsageProbeOptions } fr
 /** Run one provider in a PTY until exit, manual switch, idle timeout, or limit. */
 export const waitForProvider = async (
   provider: InteractiveProviderConfig,
-  config: CodePassConfig,
+  config: KeepitmovinConfig,
   cwd: string,
   handoffPrompt: string | undefined,
   handoffPath: string,
@@ -51,7 +51,7 @@ export const waitForProvider = async (
     return { ...gated, ...(route ? { route } : {}) };
   }
 
-  output?.write(chalk.cyan(`\nCodePass starting ${provider.label}...\n`));
+  output?.write(chalk.cyan(`\nStarting ${provider.label}…\n`));
   output?.write(chalk.gray(`Command: ${formatCommandEcho(launch.command, launch.args)}\n\n`));
 
   let child: PtyProcess;
@@ -64,7 +64,7 @@ export const waitForProvider = async (
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
 
-    output?.write(chalk.yellow(`CodePass could not start ${provider.label}: ${message}\n`));
+    output?.write(chalk.yellow(`keepitmovin could not start ${provider.label}: ${message}\n`));
 
     const missing =
       message.toLowerCase().includes("not found") || message.toLowerCase().includes("enoent");
@@ -92,7 +92,7 @@ export const waitForProvider = async (
     detectedError = "timeout";
     settled = true;
     output?.write(
-      chalk.yellow(`\n\nCodePass saw no activity from ${provider.label} for ${idleTimeoutMs}ms. Pausing this tool...\n`)
+      chalk.yellow(`\n\nkeepitmovin saw no activity from ${provider.label} for ${idleTimeoutMs}ms. Pausing this tool...\n`)
     );
     child.kill();
   };
@@ -167,7 +167,7 @@ export const waitForProvider = async (
     if (chunk.toString("utf8").includes(manualSwitchSequence)) {
       detectedError = "manual_switch";
       settled = true;
-      output?.write(chalk.yellow("\n\nCodePass manual switch requested. Pausing this tool...\n"));
+      output?.write(chalk.yellow("\n\nkeepitmovin manual switch requested. Pausing this tool...\n"));
       child.kill();
       return;
     }
@@ -215,7 +215,7 @@ export const waitForProvider = async (
         if (detectedError && !settled) {
           settled = true;
           output?.write(
-            chalk.yellow(`\n\nCodePass noticed ${provider.label} appears blocked: ${detectedError}.\n`)
+            chalk.yellow(`\n\n${provider.label} looks blocked (${detectedError}).\n`)
           );
           child.kill();
         }

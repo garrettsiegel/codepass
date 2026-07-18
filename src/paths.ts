@@ -3,7 +3,7 @@ import path from "node:path";
 
 /**
  * Resolves a possibly-relative configured path against `cwd`. Absolute paths are
- * returned untouched. The single place CodePass turns a config path string into a
+ * returned untouched. The single place keepitmovin turns a config path string into a
  * concrete filesystem path, so every module agrees on the same rules.
  */
 export const resolveFromCwd = (cwd: string, configuredPath: string): string =>
@@ -28,7 +28,7 @@ export const isStrictlyInside = (child: string, parent: string): boolean => {
 /**
  * Guards a recursive delete. A directory is safe to `rm -rf` only when it is
  * strictly inside `cwd` (or an explicitly configured absolute artifacts dir) AND
- * its path carries a `.codepass` segment — never the cwd, an ancestor of it, the
+ * its path carries a `.keepitmovin` segment — never the cwd, an ancestor of it, the
  * home directory, the filesystem root, or the git repo root. This stops a
  * mis-set `handoffPath` like `"handoff.md"` (whose dirname is the cwd) from
  * wiping the whole project.
@@ -55,7 +55,7 @@ export const isSafeToRecursivelyDelete = (
     return false;
   }
 
-  const hasCodepassSegment = resolved.split(path.sep).includes(".codepass");
+  const hasKeepitmovinSegment = resolved.split(path.sep).includes(".keepitmovin");
   const isAllowedAbsoluteDir = (options.allowedAbsoluteDirs ?? [])
     .map((dir) => path.resolve(dir))
     .includes(resolved);
@@ -64,5 +64,5 @@ export const isSafeToRecursivelyDelete = (
     return true;
   }
 
-  return isStrictlyInside(resolved, cwd) && hasCodepassSegment;
+  return isStrictlyInside(resolved, cwd) && hasKeepitmovinSegment;
 };

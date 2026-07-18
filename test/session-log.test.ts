@@ -7,7 +7,7 @@ import { readLatestSessionLog, resolveSessionsDir, writeSessionLog } from "../sr
 import type { HarnessSessionLog } from "../src/types.js";
 
 const makeTempDir = async (): Promise<string> => {
-  const dir = path.join(os.tmpdir(), `codepass-session-log-${Date.now()}-${Math.random()}`);
+  const dir = path.join(os.tmpdir(), `kim-session-log-${Date.now()}-${Math.random()}`);
   await mkdir(dir, { recursive: true });
   return dir;
 };

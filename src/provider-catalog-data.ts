@@ -1,9 +1,10 @@
 import { EXTRA_PROVIDER_CATALOG } from "./provider-catalog-extra.js";
+import { SUPPORTED_MORE_CATALOG } from "./provider-catalog-more.js";
 import {
+  DEFAULT_BOOTSTRAP,
   DEFAULT_HANDOFF_ARGS,
+  DEFAULT_HANDOFF_BOOTSTRAP,
   DEFAULT_SESSION_ARGS,
-  INLINE_HANDOFF_BOOTSTRAP,
-  INLINE_SESSION_BOOTSTRAP,
   type ProviderCatalogEntry
 } from "./provider-catalog-types.js";
 
@@ -14,7 +15,12 @@ export {
   type ProviderCommandSpec
 } from "./provider-catalog-types.js";
 
-const CORE_PROVIDER_CATALOG: ProviderCatalogEntry[] = [
+// Fully-supported tools, part 1. The rest live in provider-catalog-more.ts;
+// hidden/opt-in tools live in provider-catalog-extra.ts. Split only to keep each
+// file under the 250 LOC limit — catalog order here drives the default fallback
+// chain (claude → codex → kimi → antigravity → opencode → grok → cursor →
+// copilot → ollama), so keep entries in the intended order.
+const SUPPORTED_CORE_CATALOG: ProviderCatalogEntry[] = [
   {
     name: "claude",
     label: "Claude Code",
@@ -74,31 +80,48 @@ const CORE_PROVIDER_CATALOG: ProviderCatalogEntry[] = [
     summary: "OpenAI coding agent CLI with interactive and non-interactive modes."
   },
   {
-    name: "cline",
-    label: "Cline",
+    name: "kimi",
+    label: "Kimi CLI",
     group: "harness",
-    integrationType: "pty",
-    command: "cline",
+    integrationType: "pty_with_bootstrap_input",
+    command: "kimi",
     versionArgs: ["--version"],
-    defaultEnabled: false,
+    defaultEnabled: true,
     controllable: true,
-    // Official CLI: `-i`/`--tui` opens the interactive TUI with an optional prompt.
-    // A bare positional prompt without `-i` is not the durable multi-turn TUI path.
-    args: ["-i", "{{sessionPrompt}}"],
-    handoffArgs: ["-i", "{{handoffPrompt}}"],
+    // Kimi's `-p` is one-shot (exits after a turn) and there is no positional
+    // prompt, so we start the interactive TUI and paste the handoff pointer.
+    // It is a full coding agent, so it can read the handoff file (DEFAULT_*).
+    args: [],
+    handoffArgs: [],
+    bootstrapInput: DEFAULT_BOOTSTRAP,
+    handoffBootstrapInput: DEFAULT_HANDOFF_BOOTSTRAP,
+    // Confirmed in MoonshotAI/kimi-code + kimi-cli source: the TS TUI wraps a 429
+    // as "Error: [provider.rate_limit] …"; the Python CLI prints a 402 banner and
+    // the raw OpenAI error body (type tags below). "reached your usage limit for
+    // this billing cycle" is the managed-OAuth 403 quota (apostrophe-free anchor).
+    limitPatterns: [
+      "[provider.rate_limit]",
+      "membership expired, please renew your plan",
+      "rate_limit_reached_error",
+      "exceeded_current_quota_error",
+      "engine_overloaded_error",
+      "request reached organization",
+      "is suspended due to insufficient balance",
+      "reached your usage limit for this billing cycle"
+    ],
+    install: "Install with `curl -fsSL https://code.kimi.com/kimi-code/install.sh | bash` (Windows: `irm https://code.kimi.com/kimi-code/install.ps1 | iex`), Homebrew `brew install kimi-code`, or `npm i -g @moonshot-ai/kimi-code`.",
+    auth: "Run `kimi` then `/login` (browser or API key), use `kimi login` (device code), or set `KIMI_API_KEY`.",
     updateCommands: [
       {
-        label: "Update Cline",
-        command: "cline",
-        args: ["update"]
+        label: "Upgrade Kimi CLI",
+        command: "kimi",
+        args: ["upgrade"]
       }
     ],
-    install: "Install with `npm install -g cline`.",
-    auth: "Run `cline auth` and configure providers/models (including OpenRouter) before enabling it.",
-    homepage: "https://cline.bot/",
-    summary: "Model-flexible coding agent available as CLI, IDE extension, and SDK.",
+    homepage: "https://www.kimi.com/code/",
+    summary: "Moonshot AI's terminal coding agent (Kimi Code CLI) with an interactive TUI.",
     limitation:
-      "Disabled by default. CodePass launches interactive TUI mode (`cline -i \"…\"`); confirm your installed `cline` supports the `-i`/`--tui` flag (older builds may not). Configure a model with `cline auth` before enabling. The prompt is briefly visible to local `ps` while Cline runs."
+      "keepitmovin starts the interactive `kimi` TUI and pastes the handoff as the first message (its `-p` mode exits after one turn). Limit banners are curated from the open-source MoonshotAI/kimi-code + kimi-cli clients, with generic detection as backstop."
   },
   {
     name: "antigravity",
@@ -111,11 +134,21 @@ const CORE_PROVIDER_CATALOG: ProviderCatalogEntry[] = [
     controllable: true,
     args: ["--prompt-interactive", "{{sessionPrompt}}"],
     handoffArgs: ["--prompt-interactive", "{{handoffPrompt}}"],
+    // The agy binary is closed-source, so these banners come from corroborated
+    // user reports (antigravity-cli issues #56/#163/#234/#457 quote the quota
+    // banner verbatim; #544 and #264 the overload ones) — not confirmed in
+    // source. "Individual quota reached" also covers the RESOURCE_EXHAUSTED
+    // (code 429) log form, which embeds the same sentence.
+    limitPatterns: [
+      "individual quota reached",
+      "the model api is currently overloaded",
+      "our servers are experiencing high traffic right now"
+    ],
     install: "Install with `curl -fsSL https://antigravity.google/cli/install.sh | bash` (Windows: `irm https://antigravity.google/cli/install.ps1 | iex`), then verify with `agy --version`.",
     auth: "Sign in by running `agy`, or set GEMINI_API_KEY / ANTIGRAVITY_API_KEY for headless use.",
     homepage: "https://antigravity.google/",
     summary: "Google's agent-first coding platform; its CLI ships as the `agy` command.",
-    limitation: "CodePass drives Antigravity through `agy --prompt-interactive` inside a PTY. No verified rate-limit banner yet, so it relies on CodePass's generic limit detection (add exact strings to `limitPatterns` once confirmed)."
+    limitation: "keepitmovin drives Antigravity through `agy --prompt-interactive` inside a PTY. Its limit banners (\"Individual quota reached…\") are curated from corroborated user reports — the CLI is closed-source, so they cannot be confirmed in source. Generic detection remains as backstop."
   },
   {
     name: "opencode",
@@ -128,8 +161,24 @@ const CORE_PROVIDER_CATALOG: ProviderCatalogEntry[] = [
     controllable: true,
     args: ["{{cwd}}", "--prompt", "{{sessionPrompt}}"],
     handoffArgs: ["{{cwd}}", "--prompt", "{{handoffPrompt}}"],
+    // opencode normalizes retryable provider errors to a small set of banners it
+    // renders on a red status line (packages/opencode/src/session/retry.ts on the
+    // anomalyco/opencode dev branch — confirmed in source). These head their line
+    // so the strict banner guard trusts them; the generic "overloaded"/"rate
+    // limit" families would miss them because opencode's line leads with the
+    // message, not a status word. IMPORTANT: opencode auto-retries limits forever
+    // and does not exit, so the on-screen banner — not a process exit — is the
+    // handoff signal. The provider-prefixed passthrough text is unbounded; these
+    // are only the opencode-owned normalized strings.
+    limitPatterns: [
+      "provider is overloaded",
+      "free usage exceeded, subscribe to go",
+      "usage limit reached",
+      "subscription quota exceeded",
+      "gemini is way too hot right now"
+    ],
     install: "Install with `npm i -g opencode-ai@latest` or Homebrew.",
-    auth: "Run `opencode providers` to configure model providers and credentials.",
+    auth: "Run `opencode auth login` to configure model providers and credentials.",
     updateCommands: [
       {
         label: "Upgrade opencode",
@@ -139,108 +188,12 @@ const CORE_PROVIDER_CATALOG: ProviderCatalogEntry[] = [
     ],
     homepage: "https://github.com/anomalyco/opencode",
     summary: "Open-source terminal TUI/headless coding agent with provider management.",
-    limitation: "opencode routes to whichever model provider you configure, so its limit banner varies by provider — CodePass uses generic limit detection here rather than a fixed `limitPatterns` list. It also requires the prompt via `--prompt`, so the handoff prompt is briefly visible to local `ps` while opencode runs."
-  },
-  {
-    name: "grok",
-    label: "Grok Build",
-    group: "harness",
-    integrationType: "pty",
-    command: "grok",
-    versionArgs: ["--version"],
-    defaultEnabled: true,
-    controllable: true,
-    // Official CLI: `grok [OPTIONS] [PROMPT]` — positional PROMPT is the initial
-    // interactive-session prompt (not headless `-p`/`--single`). Verified via
-    // `grok --help` on Grok Build 0.2.x.
-    args: DEFAULT_SESSION_ARGS,
-    handoffArgs: DEFAULT_HANDOFF_ARGS,
-    // No curated rate-limit banners yet — rely on generic detection until exact
-    // strings are confirmed from a real Grok Build limit event.
-    updateCommands: [
-      {
-        label: "Update Grok Build",
-        command: "grok",
-        args: ["update"]
-      }
-    ],
-    install:
-      "Install official xAI Grok Build with `curl -fsSL https://x.ai/cli/install.sh | bash` (Windows: `irm https://x.ai/cli/install.ps1 | iex`), then verify with `grok --version` (expect a Grok Build version line).",
-    auth: "Run `grok login` (browser OAuth), or set `XAI_API_KEY` for headless/API-key auth.",
-    homepage: "https://x.ai/cli",
-    summary: "xAI coding agent CLI (Grok Build) with interactive TUI, plan mode, and subagents.",
-    limitation:
-      "CodePass drives official xAI Grok Build with a positional interactive prompt (`grok \"…\"` per `grok --help`; do not use headless `-p` here). No curated rate-limit banners yet, so switches rely on generic limit detection until exact strings are confirmed. The prompt is briefly visible to local `ps` while Grok runs. A third-party CLI may also install as `grok` — use the xAI installer and confirm `grok --version` reports Grok Build."
-  },
-  {
-    name: "cursor",
-    label: "Cursor Agent",
-    group: "harness",
-    integrationType: "pty",
-    // Official binary is `agent` (installs to ~/.local/bin). Config name stays
-    // `cursor` so it is not confused with other tools that also ship an `agent`.
-    command: "agent",
-    versionArgs: ["--version"],
-    defaultEnabled: true,
-    controllable: true,
-    // Docs: `agent "refactor…"` starts an interactive session with an initial
-    // prompt. Headless print mode is `agent -p "…"` — not used here.
-    args: DEFAULT_SESSION_ARGS,
-    handoffArgs: DEFAULT_HANDOFF_ARGS,
-    // No curated rate-limit banners yet — rely on generic detection until exact
-    // strings are confirmed from a real Cursor Agent limit event.
-    updateCommands: [
-      {
-        label: "Update Cursor Agent",
-        command: "agent",
-        args: ["update"]
-      }
-    ],
-    install:
-      "Install with `curl https://cursor.com/install -fsS | bash` (Windows: `irm 'https://cursor.com/install?win32=true' | iex`), ensure `~/.local/bin` is on PATH, then verify with `agent --version`.",
-    auth: "Run `agent login` (browser OAuth), or set `CURSOR_API_KEY` for headless/API-key auth.",
-    homepage: "https://cursor.com/cli",
-    summary: "Cursor's terminal coding agent CLI with interactive sessions and headless print mode.",
-    limitation:
-      "CodePass drives Cursor Agent with a positional interactive prompt (`agent \"…\"` per Cursor docs; do not use headless `-p` here). The on-PATH binary is named `agent`, which can collide with other tools — confirm `agent --version` is Cursor Agent and that `~/.local/bin` precedes other installs. No curated rate-limit banners yet, so switches rely on generic limit detection until exact strings are confirmed. The prompt is briefly visible to local `ps` while the agent runs."
-  },
-  {
-    name: "ollama",
-    label: "Ollama",
-    group: "harness",
-    integrationType: "pty_with_bootstrap_input",
-    command: "ollama",
-    versionArgs: ["--version"],
-    defaultEnabled: false,
-    controllable: true,
-    args: ["run", "llama3.2"],
-    handoffArgs: ["run", "llama3.2"],
-    // Ollama is a plain chat REPL with no file access — paste the task/handoff
-    // text inline rather than a pointer to the handoff file it cannot read.
-    bootstrapInput: INLINE_SESSION_BOOTSTRAP,
-    handoffBootstrapInput: INLINE_HANDOFF_BOOTSTRAP,
-    install: "Install from https://ollama.com/download, then pull a model with `ollama pull llama3.2`.",
-    auth: "No login required — Ollama runs models entirely on your machine.",
-    homepage: "https://ollama.com/",
-    summary: "Local model runtime; CodePass starts a chat session and pastes the handoff as the first message.",
-    limitation: "Ollama is a plain chat REPL, not an autonomous coding agent — it won't edit files on its own. Change the model name in `args`/`handoffArgs` (default: llama3.2) to match a model you've pulled. A failed launch usually means the Ollama daemon isn't running (connection refused), not a rate limit."
-  },
-  {
-    name: "openrouter",
-    label: "OpenRouter",
-    group: "guided",
-    integrationType: "external_app",
-    defaultEnabled: false,
-    controllable: false,
-    install: "Create an OpenRouter account and generate an API key at https://openrouter.ai/keys.",
-    auth: "Set OPENROUTER_API_KEY, then point opencode or Cline at an OpenRouter model.",
-    homepage: "https://openrouter.ai/",
-    summary: "Model-routing gateway reached through opencode or Cline, not a standalone CLI.",
-    limitation: "CodePass does not launch OpenRouter directly — configure it as a model provider inside opencode (`opencode providers`) or Cline's model settings."
+    limitation: "opencode auto-retries rate limits indefinitely rather than exiting, so keepitmovin hands off when it sees one of opencode's normalized retry banners (\"Provider is overloaded\", \"Free usage exceeded, subscribe to Go\", …). Banner text for other providers is passed through raw and caught by generic detection. opencode also needs the prompt via `--prompt`, so it is briefly visible to local `ps` while it runs."
   }
 ];
 
 export const PROVIDER_CATALOG: ProviderCatalogEntry[] = [
-  ...CORE_PROVIDER_CATALOG,
+  ...SUPPORTED_CORE_CATALOG,
+  ...SUPPORTED_MORE_CATALOG,
   ...EXTRA_PROVIDER_CATALOG
 ];

@@ -2,14 +2,14 @@ import { readdir, rm, unlink } from "node:fs/promises";
 import path from "node:path";
 import { getGitRoot } from "./git.js";
 import { isSafeToRecursivelyDelete, isStrictlyInside, resolveFromCwd } from "./paths.js";
-import type { CodePassConfig } from "./types.js";
+import type { KeepitmovinConfig } from "./types.js";
 
 export interface HandoffPaths {
   livePath: string;
   archiveDir: string;
 }
 
-export const getHandoffPaths = (cwd: string, config: CodePassConfig): HandoffPaths => ({
+export const getHandoffPaths = (cwd: string, config: KeepitmovinConfig): HandoffPaths => ({
   livePath: resolveFromCwd(cwd, config.harness.handoffPath),
   archiveDir: resolveFromCwd(cwd, config.harness.handoffArchiveDir)
 });
@@ -29,7 +29,7 @@ const removeExactFile = async (file: string | undefined): Promise<boolean> => {
 
 export const clearHandoffArtifacts = async (
   cwd: string,
-  config: CodePassConfig
+  config: KeepitmovinConfig
 ): Promise<string[]> => {
   const paths = getHandoffPaths(cwd, config);
   const sessionsDir = resolveFromCwd(cwd, config.logs.sessionsDir);
@@ -65,7 +65,7 @@ export const clearHandoffArtifacts = async (
     // Unsafe to recurse (e.g. a configured path resolves to cwd or home). Never
     // scan by extension here: that could delete unrelated user files.
     console.warn(
-      `CodePass: ${candidate.dir} is not a dedicated .codepass directory; ` +
+      `keepitmovin: ${candidate.dir} is not a dedicated .keepitmovin directory; ` +
         `${candidate.exactFile ? "removing only the exact live handoff" : "leaving it untouched"}.`
     );
     if (await removeExactFile(candidate.exactFile)) {

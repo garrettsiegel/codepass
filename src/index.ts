@@ -1,4 +1,4 @@
-export { defaultConfig, initConfig, loadConfig, codepassConfigSchema } from "./config.js";
+export { defaultConfig, initConfig, loadConfig, keepitmovinConfigSchema } from "./config.js";
 export { runDoctor } from "./doctor.js";
 export { classifyError } from "./errors.js";
 export {
@@ -59,6 +59,8 @@ export {
   getProviderCatalog,
   isCatalogHarnessProvider,
   isHarnessControllable,
+  isHiddenCatalogEntry,
+  isHiddenProviderName,
   mergeCatalogInteractiveProviders,
   PROVIDER_CATALOG,
   reconcileProviderOrder
@@ -74,7 +76,7 @@ export type {
   RouteDecision,
   RoutingTier,
   SessionOutcome,
-  CodePassConfig,
+  KeepitmovinConfig,
   UsageProbeKind,
   UsageProbeSpec
 } from "./types.js";

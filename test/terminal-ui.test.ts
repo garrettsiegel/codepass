@@ -35,7 +35,7 @@ describe("terminal UI", () => {
         command: "setup guide",
         available: false,
         detail: "guided integration",
-        guidance: "CodePass cannot live-switch into Devin yet.",
+        guidance: "keepitmovin cannot live-switch into Devin yet.",
         group: "guided",
         integrationType: "cloud_link",
         controllable: false,

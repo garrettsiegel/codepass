@@ -1,7 +1,7 @@
 import { confirm, isCancel } from "@clack/prompts";
 import { execa } from "execa";
 import { getCatalogEntry, type ProviderCommandSpec } from "./provider-catalog.js";
-import type { InteractiveProviderConfig, CodePassConfig } from "./types.js";
+import type { InteractiveProviderConfig, KeepitmovinConfig } from "./types.js";
 
 export type ProviderFreshnessAction =
   | "checked"
@@ -90,7 +90,7 @@ export const checkProviderCommand = async (
   }
 };
 
-export const getProvidersForFreshness = (config: CodePassConfig): InteractiveProviderConfig[] => {
+export const getProvidersForFreshness = (config: KeepitmovinConfig): InteractiveProviderConfig[] => {
   const providerMap = new Map(
     config.harness.providers.map((provider) => [provider.name, provider])
   );
@@ -142,7 +142,7 @@ export const runMaintenanceCommand = async (
 export const shouldRunCommand = async (
   label: string,
   commandSpec: ProviderCommandSpec,
-  mode: CodePassConfig["updates"]["mode"],
+  mode: KeepitmovinConfig["updates"]["mode"],
   interactive: boolean
 ): Promise<boolean> => {
   if (mode === "always") {

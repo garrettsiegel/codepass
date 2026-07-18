@@ -51,7 +51,7 @@ let checked = false;
 /**
  * node-pty ships a prebuilt `spawn-helper` binary that must be executable. Some
  * installs (notably pnpm) drop its exec bit, which makes `pty.spawn` throw
- * `posix_spawnp failed` — CodePass then silently degrades to non-interactive pipes
+ * `posix_spawnp failed` — keepitmovin then silently degrades to non-interactive pipes
  * and interactive tools like Claude Code hang. Restore the exec bit at startup.
  * Best-effort and idempotent; no-op on Windows.
  */

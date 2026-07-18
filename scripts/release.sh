@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Release codepass: bump the version, commit + tag, push to origin, and publish
+# Release kim: bump the version, commit + tag, push to origin, and publish
 # to npm — in one step.
 #
 # Usage:
@@ -43,7 +43,7 @@ fi
 
 # Keep npm cache writes out of a machine-wide cache that may be owned by a
 # different user, while still reading the caller's normal ~/.npmrc credentials.
-export NPM_CONFIG_CACHE="${NPM_CONFIG_CACHE:-${TMPDIR:-/tmp}/codepass-npm-cache}"
+export NPM_CONFIG_CACHE="${NPM_CONFIG_CACHE:-${TMPDIR:-/tmp}/kim-npm-cache}"
 
 echo "==> Checking branch and working tree"
 CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"

@@ -13,7 +13,7 @@ import {
 } from "../src/handoff-refresh.js";
 
 const makeTempDir = async (): Promise<string> => {
-  const dir = path.join(os.tmpdir(), `codepass-refresh-${Date.now()}-${Math.random()}`);
+  const dir = path.join(os.tmpdir(), `kim-refresh-${Date.now()}-${Math.random()}`);
   await mkdir(dir, { recursive: true });
   return dir;
 };
@@ -21,7 +21,7 @@ const makeTempDir = async (): Promise<string> => {
 // A minimal handoff file with all managed sections present.
 const template = (): string =>
   [
-    "# CodePass Handoff",
+    "# keepitmovin Handoff",
     "",
     "## Current Goal",
     "",
@@ -121,8 +121,8 @@ describe("refreshHandoffFile", () => {
 
 describe("buildNudgeMessage", () => {
   it("names the path and ends with a newline", () => {
-    const message = buildNudgeMessage("/repo/.codepass/current/handoff.md");
-    expect(message).toContain("/repo/.codepass/current/handoff.md");
+    const message = buildNudgeMessage("/repo/.keepitmovin/current/handoff.md");
+    expect(message).toContain("/repo/.keepitmovin/current/handoff.md");
     expect(message.endsWith("\n")).toBe(true);
   });
 });
@@ -183,7 +183,7 @@ describe("startHandoffWatcher", () => {
     await wait(150);
     stop();
 
-    expect(writes.some((write) => write.includes("Please update the CodePass handoff file"))).toBe(true);
+    expect(writes.some((write) => write.includes("Please update the keepitmovin handoff file"))).toBe(true);
   });
 
   it("does nothing when the watcher is disabled", async () => {

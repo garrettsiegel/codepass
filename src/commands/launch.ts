@@ -9,16 +9,16 @@ import { renderHarnessStart } from "../terminal-ui.js";
 import { assertConfigTrusted } from "../trust.js";
 import { ensureProviderFreshness } from "../updates.js";
 import type { CliOptions } from "../cli-options.js";
-import type { CodePassConfig } from "../types.js";
+import type { KeepitmovinConfig } from "../types.js";
 
-// On `codepass`, decide which config to launch with. First run → wizard. Otherwise
+// On `kim`, decide which config to launch with. First run → wizard. Otherwise
 // confirm the saved chain (reuse / reconfigure / start fresh). Non-interactive
 // stdin reuses saved preferences without prompting.
 const resolveLaunchConfig = async (
-  loadedConfig: CodePassConfig,
+  loadedConfig: KeepitmovinConfig,
   cwd: string,
   configPath?: string
-): Promise<CodePassConfig> => {
+): Promise<KeepitmovinConfig> => {
   if (!loadedConfig.harness.setupComplete) {
     return (await runSetupWizard({ cwd, configPath })).config;
   }
@@ -28,22 +28,22 @@ const resolveLaunchConfig = async (
   }
 
   const enabled = getEnabledInteractiveProviders(loadedConfig);
-  const chain = enabled.length > 0 ? describeProviderChain(enabled) : "(no enabled tools)";
-  console.log(`${chalk.bold("Saved chain:")} ${chain}`);
+  const chain = enabled.length > 0 ? describeProviderChain(enabled) : "(no tools turned on)";
+  console.log(`${chalk.bold("Your fallback order:")} ${chain}`);
 
   const choice = await select({
-    message: "Start with this chain?",
+    message: "Start with this order?",
     options: [
-      { label: "Yes, launch", value: "launch" },
-      { label: "Reconfigure (choose tools/order)", value: "reconfigure" },
-      { label: "Start fresh (ignore saved preferences)", value: "fresh" }
+      { label: "Yes, start", value: "launch" },
+      { label: "Change tools or order", value: "reconfigure" },
+      { label: "Start over (ignore saved settings)", value: "fresh" }
     ],
     initialValue: "launch"
   });
 
   if (isCancel(choice)) {
-    cancel("CodePass canceled.");
-    throw new Error("CodePass canceled.");
+    cancel("keepitmovin canceled.");
+    throw new Error("keepitmovin canceled.");
   }
 
   if (choice === "launch") {
@@ -83,11 +83,11 @@ export const runLaunchCommand = async (options: CliOptions): Promise<void> => {
     );
 
     for (const provider of missingSelectedProviders) {
-      console.log(chalk.yellow(`${provider.label} is not installed or not on PATH. CodePass will skip it for this session.`));
+      console.log(chalk.yellow(`${provider.label} isn't installed or isn't on your PATH — keepitmovin will skip it this session.`));
     }
 
     if (providersAvailableOnPath.length === 0) {
-      throw new Error("CodePass did not find any launchable tools in your selected stack. Run `codepass providers` to choose installed tools.");
+      throw new Error("None of your chosen tools are installed. Run `kim providers` to pick tools you have installed.");
     }
 
     const freshness = await ensureProviderFreshness({
@@ -104,7 +104,7 @@ export const runLaunchCommand = async (options: CliOptions): Promise<void> => {
     const launchableProviders = providersAvailableOnPath.filter((provider) => !missingProviders.has(provider.name));
 
     if (launchableProviders.length === 0) {
-      throw new Error("CodePass did not find any launchable tools in your selected stack. Run `codepass providers` to choose installed tools.");
+      throw new Error("None of your chosen tools are installed. Run `kim providers` to pick tools you have installed.");
     }
 
     const task = await resolveTaskForLaunch(options, config);

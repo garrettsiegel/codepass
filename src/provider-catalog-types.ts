@@ -8,11 +8,18 @@ export interface ProviderCommandSpec {
   args: string[];
 }
 
+// "full": verified install/auth/transport and (for launchable tools) curated
+// limit banners — shown everywhere. "hidden": entry is kept so existing configs
+// that reference it keep working, but it is left out of the setup wizard, config
+// defaults, and docs until it earns full support. Absent means "full".
+export type ProviderSupportLevel = "full" | "hidden";
+
 export interface ProviderCatalogEntry {
   name: string;
   label: string;
   group: ProviderCatalogGroup;
   integrationType: ProviderIntegrationType;
+  supportLevel?: ProviderSupportLevel;
   command?: string;
   versionArgs?: string[];
   defaultEnabled: boolean;
@@ -45,9 +52,9 @@ export const DEFAULT_HANDOFF_ARGS = ["{{handoffPrompt}}"];
 // TUI/REPL tools often treat each `\n` as submit, so a full handoff paragraph would
 // become many partial turns. The handoff file already holds the full continuity text.
 export const DEFAULT_BOOTSTRAP =
-  "Read the CodePass handoff at {{handoffPath}} and continue the session (keep that file updated as you work).\n";
+  "Read the keepitmovin handoff at {{handoffPath}} and continue the session (keep that file updated as you work).\n";
 export const DEFAULT_HANDOFF_BOOTSTRAP =
-  "Read the CodePass handoff at {{handoffPath}} first, then continue from where the previous tool left off.\n";
+  "Read the keepitmovin handoff at {{handoffPath}} first, then continue from where the previous tool left off.\n";
 // Inline bootstrap for plain chat REPLs (e.g. Ollama) that have NO filesystem
 // access: they cannot open the handoff file, so the task/continuation text must
 // be pasted directly rather than pointing at {{handoffPath}}.

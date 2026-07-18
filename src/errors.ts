@@ -98,7 +98,7 @@ const stripUsageWarnings = (text: string): string => {
 };
 
 /**
- * Ordered pattern groups for the limit/quota/auth families CodePass can detect from
+ * Ordered pattern groups for the limit/quota/auth families keepitmovin can detect from
  * text alone (no exit code). Quota is checked before rate limit so the more
  * specific classification wins. Used by the live harness detector.
  */

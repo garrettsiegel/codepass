@@ -6,7 +6,7 @@ import { defaultConfig } from "../src/config.js";
 import { applyProviderOrder, applyRoutingPreference, getSetupState } from "../src/setup.js";
 
 const makeTempDir = async (): Promise<string> => {
-  const dir = path.join(os.tmpdir(), `codepass-setup-${Date.now()}-${Math.random()}`);
+  const dir = path.join(os.tmpdir(), `kim-setup-${Date.now()}-${Math.random()}`);
   await mkdir(dir, { recursive: true });
   return dir;
 };
@@ -18,7 +18,8 @@ describe("setup helpers", () => {
     expect(config.harness.setupComplete).toBe(true);
     expect(config.harness.providerOrder).toEqual(["codex", "claude"]);
     expect(config.harness.providers.find((provider) => provider.name === "codex")?.enabled).toBe(true);
-    expect(config.harness.providers.find((provider) => provider.name === "cline")?.enabled).toBe(false);
+    // A supported provider left out of the chosen order is disabled.
+    expect(config.harness.providers.find((provider) => provider.name === "kimi")?.enabled).toBe(false);
   });
 
   it("persists the routing opt-in without changing provider order", () => {
@@ -44,7 +45,7 @@ describe("setup helpers", () => {
       }
     ];
     await writeFile(
-      path.join(cwd, "codepass.config.json"),
+      path.join(cwd, "keepitmovin.config.json"),
       `${JSON.stringify(config, null, 2)}\n`,
       "utf8"
     );

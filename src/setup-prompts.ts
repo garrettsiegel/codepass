@@ -1,12 +1,12 @@
 import { cancel, isCancel, select } from "@clack/prompts";
-import { isHarnessControllable } from "./provider-catalog.js";
+import { isHarnessControllable, isHiddenProviderName } from "./provider-catalog.js";
 import type { ToolStatus } from "./tool-status.js";
 import type { InteractiveProviderConfig } from "./types.js";
 
 export const unwrapPrompt = <T>(value: T | symbol): T => {
   if (isCancel(value)) {
-    cancel("CodePass setup canceled.");
-    throw new Error("CodePass setup canceled.");
+    cancel("keepitmovin setup canceled.");
+    throw new Error("keepitmovin setup canceled.");
   }
 
   return value;
@@ -27,8 +27,8 @@ export const chooseProviderOrder = async (
   while (remaining.length > 1) {
     const previousProvider = ordered.at(-1);
     const message = previousProvider
-      ? `If ${providerMap.get(previousProvider)?.label ?? previousProvider} is blocked, which tool should CodePass try next?`
-      : "Which tool should CodePass start first?";
+      ? `If ${providerMap.get(previousProvider)?.label ?? previousProvider} hits a limit, which tool should keepitmovin try next?`
+      : "Which tool should keepitmovin start with?";
     const nextProvider = unwrapPrompt(await select({
       message,
       options: remaining.map((name) => ({
@@ -51,7 +51,13 @@ export const buildStackOptions = (
   const ready: Array<{ value: string; label: string; hint?: string }> = [];
   const addLater: Array<{ value: string; label: string; hint?: string; disabled: boolean }> = [];
 
-  for (const provider of providers.filter((entry) => isHarnessControllable(entry))) {
+  // Hidden catalog tools stay out of the picker unless this config already has
+  // them enabled — an explicit earlier choice keeps working and stays visible.
+  const selectable = providers.filter(
+    (entry) => isHarnessControllable(entry) && (entry.enabled || !isHiddenProviderName(entry.name))
+  );
+
+  for (const provider of selectable) {
     const status = statuses.find((entry) => entry.name === provider.name);
     const option = {
       value: provider.name,
@@ -77,10 +83,11 @@ export const buildStackOptions = (
 export const renderCatalogPreview = (statuses: ToolStatus[]): string => {
   const guided = statuses
     .filter((status) => status.group === "guided" || status.controllable === false)
+    .filter((status) => !isHiddenProviderName(status.name))
     .slice(0, 8);
 
   if (guided.length === 0) {
-    return "No guided integrations found yet.";
+    return "No other tools to show right now.";
   }
 
   return guided

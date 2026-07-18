@@ -126,18 +126,18 @@ const sectionRows = (
 
 export const renderSetupIntro = (): string => [
   "",
-  box("CodePass", [
-    "One terminal for Claude, Codex, Antigravity, opencode, Grok, Cursor, and your fallback stack.",
-    "CodePass starts the first tool, keeps a live handoff file,",
-    "and helps you switch when limits or login issues interrupt work."
+  box("keepitmovin", [
+    "Run your coding tools in one terminal, in a fallback order you choose.",
+    "keepitmovin starts the first tool, keeps a live handoff file,",
+    "and switches to the next tool when one hits a limit or fails."
   ]),
   "",
-  chalk.bold("How this session works"),
-  bullet("1.", "Pick the tools CodePass should use."),
-  bullet("2.", "CodePass starts the first available tool for you."),
-  bullet("3.", "If a limit hits, CodePass switches tools with the handoff file."),
+  chalk.bold("How this works"),
+  bullet("1.", "Pick the tools you want and the order to try them."),
+  bullet("2.", "keepitmovin starts the first installed tool for you."),
+  bullet("3.", "If it hits a limit, keepitmovin hands the next tool your handoff file."),
   "",
-  chalk.gray("CodePass cannot copy private chat state between tools; the handoff file is the shared continuity layer.")
+  chalk.gray("keepitmovin can't copy a tool's private chat history — the handoff file is what carries your context across.")
 ].join("\n");
 
 export const renderToolCheck = (statuses: ToolStatusView[]): string => {
@@ -182,21 +182,21 @@ export const renderProviderOrderSummary = (
 ): string => {
   const providerMap = new Map(providers.map((provider) => [provider.name, provider.label]));
   const labels = providerOrder.map((name) => providerMap.get(name) ?? name);
-  return `${chalk.bold("Selected chain")} ${chalk.green(labels.join(" → "))}`;
+  return `${chalk.bold("Fallback order")} ${chalk.green(labels.join(" → "))}`;
 };
 
 export const renderSetupSaved = (configPath: string, chain: string): string => [
   "",
-  chalk.green("CodePass setup saved."),
+  chalk.green("keepitmovin setup saved."),
   `${chalk.bold("Config")} ${chalk.gray(configPath)}`,
   chain,
   ""
 ].join("\n");
 
-// Short, varied copy for the switch interstitial, keyed by the failure reason
-// that triggered it. Falls back to a generic message for reasons without a
-// specific line (nonzero_exit, unknown, command_not_found).
-const COMMERCIAL_BREAK_COPY: Partial<Record<AgentErrorType, string>> = {
+// Short, calm copy for the switch notice, keyed by the reason it triggered.
+// Falls back to a generic line for reasons without specific text (nonzero_exit,
+// unknown, command_not_found).
+const SWITCH_REASON_COPY: Partial<Record<AgentErrorType, string>> = {
   rate_limit: "hit its usage limit",
   quota_exceeded: "ran out of quota",
   auth_error: "needs you to sign in again",
@@ -209,13 +209,13 @@ export const renderCommercialBreak = (
   toLabel: string,
   reason: AgentErrorType
 ): string => {
-  const situation = COMMERCIAL_BREAK_COPY[reason] ?? "hit a snag";
+  const situation = SWITCH_REASON_COPY[reason] ?? "hit a snag";
 
   return [
     "",
-    box("☕ Commercial break", [
-      `${fromLabel} ${situation}. Moving to ${toLabel}...`,
-      "Handoff ready — pick up right where you left off."
+    box("Switching tools", [
+      `${fromLabel} ${situation}. Starting ${toLabel}…`,
+      "Your context is packed — pick up right where you left off."
     ]),
     ""
   ].join("\n");
@@ -223,10 +223,10 @@ export const renderCommercialBreak = (
 
 export const renderHarnessStart = (providers: InteractiveProviderConfig[]): string => [
   "",
-  box("CodePass Harness", [
-    `Starting chain: ${describeProviderChain(providers)}`,
-    "Press Ctrl+] if you want to switch tools manually.",
-    "CodePass will keep the handoff file ready in the background."
+  box("keepitmovin", [
+    `Fallback order: ${describeProviderChain(providers)}`,
+    "Press Ctrl+] any time to switch tools yourself.",
+    "keepitmovin keeps your handoff file up to date in the background."
   ]),
   ""
 ].join("\n");

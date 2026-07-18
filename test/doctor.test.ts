@@ -7,7 +7,7 @@ import { runDoctor } from "../src/doctor.js";
 import { trustConfigFile } from "../src/trust.js";
 
 const makeTempDir = async (): Promise<string> => {
-  const dir = path.join(os.tmpdir(), `codepass-doctor-${Date.now()}-${Math.random()}`);
+  const dir = path.join(os.tmpdir(), `kim-doctor-${Date.now()}-${Math.random()}`);
   await mkdir(dir, { recursive: true });
   return dir;
 };
@@ -32,18 +32,18 @@ describe("runDoctor", () => {
         name: "missing-test",
         label: "Missing",
         enabled: true,
-        command: "codepass-command-that-should-not-exist",
+        command: "kim-command-that-should-not-exist",
         args: [],
         handoffArgs: [],
         integrationType: "pty"
       }
     ];
-    const configPath = path.join(cwd, "codepass.config.json");
+    const configPath = path.join(cwd, "keepitmovin.config.json");
     await writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, "utf8");
     // These are custom (non-catalog) provider commands, so the trust gate would
     // refuse them non-interactively — pre-trust the config for this test.
     const home = await makeTempDir();
-    process.env.CODEPASS_HOME = home;
+    process.env.KEEPITMOVIN_HOME = home;
     await trustConfigFile(configPath, home);
 
     const summary = await runDoctor(cwd);
@@ -56,7 +56,7 @@ describe("runDoctor", () => {
         expect.objectContaining({ name: "missing-test", available: false })
       ])
     );
-    expect(summary.sessionsDir).toBe(path.join(cwd, ".codepass", "sessions"));
+    expect(summary.sessionsDir).toBe(path.join(cwd, ".keepitmovin", "sessions"));
   }, 15_000);
 
   it("reports the full popular provider catalog when requested", async () => {

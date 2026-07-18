@@ -6,7 +6,7 @@ import { defaultConfig } from "../src/config.js";
 import { isRoutingRequested, resolveRouteForLaunch } from "../src/launch-routing.js";
 
 const makeTempDir = async (): Promise<string> => {
-  const dir = path.join(os.tmpdir(), `codepass-launch-routing-${Date.now()}-${Math.random()}`);
+  const dir = path.join(os.tmpdir(), `kim-launch-routing-${Date.now()}-${Math.random()}`);
   await mkdir(dir, { recursive: true });
   return dir;
 };

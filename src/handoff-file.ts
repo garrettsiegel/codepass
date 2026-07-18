@@ -1,6 +1,6 @@
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { AgentErrorType, InteractiveProviderConfig, CodePassConfig } from "./types.js";
+import type { AgentErrorType, InteractiveProviderConfig, KeepitmovinConfig } from "./types.js";
 import { formatChangedFiles, formatGitSnapshot, getChangedFiles, getGitSnapshot } from "./git.js";
 import { getHandoffPaths } from "./handoff-artifacts.js";
 import {
@@ -11,7 +11,7 @@ import {
   TRANSCRIPT_EXCERPT_LIMIT
 } from "./handoff-refresh.js";
 import { ensureArtifactsIgnored } from "./artifacts.js";
-import { DEFAULT_CODEPASS_DIR } from "./config.js";
+import { DEFAULT_KEEPITMOVIN_DIR } from "./config.js";
 import { redactSecrets } from "./redact.js";
 
 export { buildProviderHandoffPrompt, buildSessionPrompt } from "./handoff-prompts.js";
@@ -29,7 +29,7 @@ export interface HandoffCheckpoint {
 
 export const createHandoffFile = async (
   cwd: string,
-  config: CodePassConfig,
+  config: KeepitmovinConfig,
   providerChain: InteractiveProviderConfig[],
   startedAt: string,
   task?: string
@@ -39,7 +39,7 @@ export const createHandoffFile = async (
   const changedFiles = await getChangedFiles(cwd);
   await mkdir(path.dirname(paths.livePath), { recursive: true });
   await mkdir(paths.archiveDir, { recursive: true });
-  await ensureArtifactsIgnored(path.join(cwd, DEFAULT_CODEPASS_DIR));
+  await ensureArtifactsIgnored(path.join(cwd, DEFAULT_KEEPITMOVIN_DIR));
   let stale: string | undefined;
   try {
     stale = await readFile(paths.livePath, "utf8");
@@ -51,10 +51,10 @@ export const createHandoffFile = async (
     await writeFile(path.join(paths.archiveDir, `recovered-${safeStartedAt}.md`), stale, "utf8");
   }
   const content = [
-    "# CodePass Handoff",
+    "# keepitmovin Handoff",
     "",
-    "This file is shared by every tool in the current CodePass session.",
-    "CodePass automatically maintains: Changed Files, Repository Snapshot, Switch History,",
+    "This file is shared by every tool in the current keepitmovin session.",
+    "keepitmovin automatically maintains: Changed Files, Repository Snapshot, Switch History,",
     "and Latest Transcript Excerpt. Write your notes in the other sections only.",
     "",
     "## Current Goal",
@@ -108,7 +108,7 @@ export const createHandoffFile = async (
 
 export const appendHandoffCheckpoint = async (
   cwd: string,
-  config: CodePassConfig,
+  config: KeepitmovinConfig,
   checkpoint: HandoffCheckpoint
 ): Promise<void> => {
   if (!config.harness.autoAppendCheckpoints) {
@@ -147,7 +147,7 @@ export const appendHandoffCheckpoint = async (
 
 export const archiveHandoffFile = async (
   cwd: string,
-  config: CodePassConfig,
+  config: KeepitmovinConfig,
   sessionId: string
 ): Promise<string | undefined> => {
   const paths = getHandoffPaths(cwd, config);
@@ -167,7 +167,7 @@ export const archiveHandoffFile = async (
 
 export const summarizeHandoffFile = async (
   cwd: string,
-  config: CodePassConfig
+  config: KeepitmovinConfig
 ): Promise<{ path: string; exists: boolean; summary: string }> => {
   const paths = getHandoffPaths(cwd, config);
 
@@ -182,7 +182,7 @@ export const summarizeHandoffFile = async (
     return {
       path: paths.livePath,
       exists: false,
-      summary: "No active CodePass handoff file exists yet."
+      summary: "No active keepitmovin handoff file exists yet."
     };
   }
 };

@@ -1,5 +1,5 @@
 import { classifyError, isUsageWarning, matchLimitPattern, matchProviderLimitPattern } from "./errors.js";
-import type { AgentErrorType, InteractiveProviderConfig, CodePassConfig } from "./types.js";
+import type { AgentErrorType, InteractiveProviderConfig, KeepitmovinConfig } from "./types.js";
 
 // Control sequences for the supported manual-switch keys. Values are the raw
 // bytes a terminal emits for each chord.
@@ -10,7 +10,7 @@ const MANUAL_SWITCH_SEQUENCES: Record<string, string> = {
   "ctrl-o": "\x0f"
 };
 
-export const getManualSwitchSequence = (config: CodePassConfig): string =>
+export const getManualSwitchSequence = (config: KeepitmovinConfig): string =>
   MANUAL_SWITCH_SEQUENCES[config.harness.manualSwitchKey.toLowerCase()] ?? "\x1d";
 
 // Prefixes that mark a line as a tool/status/error line rather than the agent's
@@ -22,12 +22,19 @@ const ERROR_LINE_INDICATORS = [
   "fatal",
   "failed",
   "request failed",
+  // Grok Build renders a rate-limit line as "Retry failed: <message>" — the
+  // message (not the prefix) carries the banner, so the prefix must count as a
+  // status indicator for the guard to trust the line.
+  "retry failed",
   "api error",
   "http error",
+  // Kimi's legacy Python CLI heads a 429/5xx line with "LLM provider error:".
+  "llm provider error",
   "status:",
   "warn:",
   "warning:",
   "✗",
+  "✘",
   "×",
   "⚠",
   "⛔",
@@ -61,7 +68,7 @@ const stripIgnored = (text: string, ignore: Array<string | undefined>): string =
 
 // True when `line` contains `pattern` in a way that reads like a status/error
 // line — either the line leads with the pattern itself, or with a known error
-// indicator. This is what stops CodePass from switching when an agent merely
+// indicator. This is what stops keepitmovin from switching when an agent merely
 // *mentions* a rate limit in ordinary prose.
 //
 // `strict` omits the loose "line contains a status word anywhere" branch. Use it
@@ -113,7 +120,7 @@ const isStatusLikeLine = (
 export const detectLiveFailure = (
   tail: string,
   provider: InteractiveProviderConfig,
-  config: CodePassConfig,
+  config: KeepitmovinConfig,
   ignore: Array<string | undefined>
 ): AgentErrorType | undefined => {
   const cleaned = stripIgnored(tail, ignore);
@@ -160,7 +167,7 @@ export const detectLiveFailure = (
 export const detectExitFailure = (
   tail: string,
   provider: InteractiveProviderConfig,
-  config: CodePassConfig,
+  config: KeepitmovinConfig,
   exitCode: number | null,
   ignore: Array<string | undefined>
 ): AgentErrorType | undefined => {

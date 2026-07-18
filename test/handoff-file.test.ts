@@ -15,7 +15,7 @@ import {
 } from "../src/handoff-file.js";
 
 const makeTempDir = async (): Promise<string> => {
-  const dir = path.join(os.tmpdir(), `codepass-handoff-file-${Date.now()}-${Math.random()}`);
+  const dir = path.join(os.tmpdir(), `kim-handoff-file-${Date.now()}-${Math.random()}`);
   await mkdir(dir, { recursive: true });
   return dir;
 };
@@ -43,21 +43,21 @@ describe("handoff file helpers", () => {
     });
 
     const content = await readFile(livePath, "utf8");
-    expect(content).toContain("CodePass Handoff");
+    expect(content).toContain("keepitmovin Handoff");
     expect(content).toContain("- Fix the checkout flow");
     expect(content).toContain("Reason: rate_limit");
     expect(content).toContain("rate limit reached");
 
     const summary = await summarizeHandoffFile(cwd, config);
     expect(summary.exists).toBe(true);
-    expect(summary.summary).toContain("CodePass Handoff");
+    expect(summary.summary).toContain("keepitmovin Handoff");
 
     const archivePath = await archiveHandoffFile(cwd, config, "session-1");
     expect(archivePath).toBeDefined();
     await expect(stat(archivePath ?? "")).resolves.toBeDefined();
 
-    await mkdir(path.join(cwd, ".codepass", "sessions"), { recursive: true });
-    await writeFile(path.join(cwd, ".codepass", "sessions", "fake.json"), "{}", "utf8");
+    await mkdir(path.join(cwd, ".keepitmovin", "sessions"), { recursive: true });
+    await writeFile(path.join(cwd, ".keepitmovin", "sessions", "fake.json"), "{}", "utf8");
     const removed = await clearHandoffArtifacts(cwd, config);
     expect(removed.length).toBeGreaterThan(0);
     await expect(stat(livePath)).rejects.toThrow();
@@ -198,16 +198,16 @@ describe("handoff file helpers", () => {
   it("builds session and provider handoff prompts with the handoff path", () => {
     const config = defaultConfig();
     const providers = config.harness.providers.filter((provider) => provider.name !== "cline");
-    const sessionPrompt = buildSessionPrompt("/repo/.codepass/current/handoff.md", providers);
+    const sessionPrompt = buildSessionPrompt("/repo/.keepitmovin/current/handoff.md", providers);
     const providerPrompt = buildProviderHandoffPrompt(
-      "/repo/.codepass/current/handoff.md",
+      "/repo/.keepitmovin/current/handoff.md",
       "Claude Code",
       "Codex",
       "rate_limit"
     );
 
     expect(sessionPrompt).toContain("Keep this shared handoff file updated");
-    expect(sessionPrompt).toContain("/repo/.codepass/current/handoff.md");
+    expect(sessionPrompt).toContain("/repo/.keepitmovin/current/handoff.md");
     expect(providerPrompt).toContain("Read this handoff file first");
     expect(providerPrompt).toContain("Switch reason: rate_limit");
   });

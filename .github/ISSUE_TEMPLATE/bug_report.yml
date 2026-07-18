@@ -1,0 +1,53 @@
+name: Bug report
+description: Something in keepitmovin isn't working as expected.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Please don't paste `.keepitmovin/` handoff files or session logs —
+        they can contain secrets. Redact anything sensitive from terminal output first.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect, and what happened instead?
+      placeholder: keepitmovin switched tools even though the agent was only talking about a rate limit…
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Run `kim`
+        2. Pick Claude Code + Codex
+        3. …
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: keepitmovin version
+      description: Output of `kim --version`.
+      placeholder: 1.6.1
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: macOS 15.2 / Ubuntu 24.04 / Windows 11
+    validations:
+      required: true
+  - type: input
+    id: tool
+    attributes:
+      label: Which tool was running?
+      placeholder: Claude Code, Codex, Kimi CLI, …
+  - type: textarea
+    id: output
+    attributes:
+      label: Relevant terminal output
+      description: The exact output around the problem (redact secrets). This will be rendered as code.
+      render: shell

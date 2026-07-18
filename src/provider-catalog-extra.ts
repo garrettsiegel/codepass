@@ -7,16 +7,62 @@ import {
 } from "./provider-catalog-types.js";
 
 /**
- * Optional / opt-in harness tools. Kept separate so provider-catalog-data.ts
- * stays under the 250 LOC limit. All defaultEnabled: false — enable after
- * install + auth (like Cline / Ollama).
+ * Hidden tools. Every entry is `supportLevel: "hidden"`: kept in the catalog so
+ * existing configs that reference them keep launching, but left out of the setup
+ * wizard, config defaults, and docs until they earn full support (verified limit
+ * banners + transport). Bring one back by moving it into a supported catalog file
+ * and dropping its `supportLevel`. Kept separate so the supported files stay
+ * under the 250 LOC limit.
  */
 export const EXTRA_PROVIDER_CATALOG: ProviderCatalogEntry[] = [
+  {
+    name: "cline",
+    label: "Cline",
+    group: "harness",
+    integrationType: "pty",
+    supportLevel: "hidden",
+    command: "cline",
+    versionArgs: ["--version"],
+    defaultEnabled: false,
+    controllable: true,
+    // Official CLI: `-i`/`--tui` opens the interactive TUI with an optional prompt.
+    // A bare positional prompt without `-i` is not the durable multi-turn TUI path.
+    args: ["-i", "{{sessionPrompt}}"],
+    handoffArgs: ["-i", "{{handoffPrompt}}"],
+    updateCommands: [
+      {
+        label: "Update Cline",
+        command: "cline",
+        args: ["update"]
+      }
+    ],
+    install: "Install with `npm install -g cline`.",
+    auth: "Run `cline auth` and configure providers/models (including OpenRouter) before enabling it.",
+    homepage: "https://cline.bot/",
+    summary: "Model-flexible coding agent available as CLI, IDE extension, and SDK.",
+    limitation:
+      "Hidden until it earns full support. keepitmovin launches interactive TUI mode (`cline -i \"…\"`); confirm your installed `cline` supports the `-i`/`--tui` flag (older builds may not). Configure a model with `cline auth` before enabling. The prompt is briefly visible to local `ps` while Cline runs."
+  },
+  {
+    name: "openrouter",
+    label: "OpenRouter",
+    group: "guided",
+    integrationType: "external_app",
+    supportLevel: "hidden",
+    defaultEnabled: false,
+    controllable: false,
+    install: "Create an OpenRouter account and generate an API key at https://openrouter.ai/keys.",
+    auth: "Set OPENROUTER_API_KEY, then point opencode or Cline at an OpenRouter model.",
+    homepage: "https://openrouter.ai/",
+    summary: "Model-routing gateway reached through opencode or Cline, not a standalone CLI.",
+    limitation: "keepitmovin does not launch OpenRouter directly — configure it as a model provider inside opencode (`opencode providers`) or Cline's model settings."
+  },
   {
     name: "aider",
     label: "Aider",
     group: "harness",
     integrationType: "pty_with_bootstrap_input",
+    supportLevel: "hidden",
     command: "aider",
     versionArgs: ["--version"],
     defaultEnabled: false,
@@ -40,13 +86,14 @@ export const EXTRA_PROVIDER_CATALOG: ProviderCatalogEntry[] = [
     homepage: "https://aider.chat/",
     summary: "Git-native pair-programming agent; model-agnostic CLI that edits files via diffs.",
     limitation:
-      "Disabled by default. CodePass starts the interactive Aider REPL and pastes the handoff as the first message (do not use `aider --message`, which exits after one turn). Configure a model before enabling. Aider may auto-commit changes — review git history after handoffs."
+      "Hidden until it earns full support. keepitmovin starts the interactive Aider REPL and pastes the handoff as the first message (do not use `aider --message`, which exits after one turn). Configure a model before enabling. Aider may auto-commit changes — review git history after handoffs."
   },
   {
     name: "goose",
     label: "Goose",
     group: "harness",
     integrationType: "pty_with_bootstrap_input",
+    supportLevel: "hidden",
     command: "goose",
     versionArgs: ["--version"],
     defaultEnabled: false,
@@ -61,13 +108,14 @@ export const EXTRA_PROVIDER_CATALOG: ProviderCatalogEntry[] = [
     homepage: "https://goose-docs.ai/",
     summary: "Open-source extensible agent (Block / AAIF) with CLI sessions and MCP extensions.",
     limitation:
-      "Disabled by default. CodePass runs `goose session` and pastes the handoff as the first message. Configure a provider with `goose configure` before enabling. Limit banners depend on the backend model — generic detection only."
+      "Hidden until it earns full support. keepitmovin runs `goose session` and pastes the handoff as the first message. Configure a provider with `goose configure` before enabling. Limit banners depend on the backend model — generic detection only."
   },
   {
     name: "amp",
     label: "Amp",
     group: "harness",
     integrationType: "pty_with_bootstrap_input",
+    supportLevel: "hidden",
     command: "amp",
     versionArgs: ["--version"],
     defaultEnabled: false,
@@ -90,13 +138,14 @@ export const EXTRA_PROVIDER_CATALOG: ProviderCatalogEntry[] = [
     homepage: "https://ampcode.com/",
     summary: "Sourcegraph Amp frontier coding agent for terminal and editor.",
     limitation:
-      "Disabled by default. CodePass starts interactive `amp` and pastes the handoff as the first message (do not use `amp -x`, which exits after one turn). No curated rate-limit banners yet — generic detection only."
+      "Hidden until it earns full support. keepitmovin starts interactive `amp` and pastes the handoff as the first message (do not use `amp -x`, which exits after one turn). No curated rate-limit banners yet — generic detection only."
   },
   {
     name: "droid",
     label: "Factory Droid",
     group: "harness",
     integrationType: "pty",
+    supportLevel: "hidden",
     command: "droid",
     versionArgs: ["--version"],
     defaultEnabled: false,
@@ -118,35 +167,6 @@ export const EXTRA_PROVIDER_CATALOG: ProviderCatalogEntry[] = [
     homepage: "https://factory.ai/",
     summary: "Factory's terminal coding agent (Droid) with interactive TUI and `droid exec` for CI.",
     limitation:
-      "Disabled by default. CodePass uses positional interactive prompts (`droid \"…\"`); do not use `droid exec` for harness sessions. No curated rate-limit banners yet — generic detection only. The prompt is briefly visible to local `ps`."
-  },
-  {
-    name: "copilot",
-    label: "GitHub Copilot CLI",
-    group: "harness",
-    integrationType: "pty_with_bootstrap_input",
-    command: "copilot",
-    versionArgs: ["--version"],
-    defaultEnabled: false,
-    controllable: true,
-    // Interactive: bare `copilot`. Programmatic one-shot is `copilot -p` / `--prompt`.
-    args: [],
-    handoffArgs: [],
-    bootstrapInput: DEFAULT_BOOTSTRAP,
-    handoffBootstrapInput: DEFAULT_HANDOFF_BOOTSTRAP,
-    updateCommands: [
-      {
-        label: "Update GitHub Copilot CLI",
-        command: "npm",
-        args: ["install", "-g", "@github/copilot@latest"]
-      }
-    ],
-    install:
-      "Install with `npm install -g @github/copilot` (Node 22+), or `brew install --cask copilot-cli`, or `curl -fsSL https://gh.io/copilot-install | bash`.",
-    auth: "On first launch run `/login`, or set `COPILOT_GITHUB_TOKEN` / `GH_TOKEN` / `GITHUB_TOKEN` (fine-grained PAT with Copilot Requests).",
-    homepage: "https://docs.github.com/en/copilot/how-tos/set-up/install-copilot-cli",
-    summary: "GitHub's terminal coding agent CLI (interactive TUI + programmatic `-p` mode).",
-    limitation:
-      "Disabled by default. Requires an active GitHub Copilot subscription. CodePass starts interactive `copilot` and pastes the handoff as the first message (do not use `copilot -p`, which exits after one turn). No curated rate-limit banners yet — generic detection only."
+      "Hidden until it earns full support. keepitmovin uses positional interactive prompts (`droid \"…\"`); do not use `droid exec` for harness sessions. No curated rate-limit banners yet — generic detection only. The prompt is briefly visible to local `ps`."
   }
 ];

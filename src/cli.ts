@@ -45,12 +45,12 @@ const explicitTask = splitExplicitTaskArgv(process.argv);
 const program = new Command();
 
 program
-  .name("codepass")
-  .description("Interactive agent harness for Claude Code, Codex, Antigravity, opencode, Grok Build, Cursor Agent, Aider, Goose, Amp, Factory Droid, Copilot, Cline, and more.")
+  .name("kim")
+  .description("Run your AI coding tools in one terminal, with automatic handoff when one hits a limit. Works with Claude Code, Codex, Kimi CLI, Google Antigravity, opencode, Grok Build, Cursor Agent, GitHub Copilot CLI, and Ollama.")
   .version(version);
 
 program
-  .argument("[task...]", "Task to start and route")
+  .argument("[task...]", "What you want to work on")
   .option("-c, --config <path>", "Config file path")
   .option("--cwd <path>", "Working directory", process.cwd())
   .option("--tier <tier>", "Override routing tier", parseTier)
@@ -65,7 +65,7 @@ program
 
 program
   .command("init")
-  .description("Create CodePass config and local run log directories.")
+  .description("Create the keepitmovin config file and local folders.")
   .option("-c, --config <path>", "Config file path")
   .option("--cwd <path>", "Working directory", process.cwd())
   .action(async (rawOptions: CliOptions | Command, command?: Command) => {
@@ -74,17 +74,17 @@ program
 
 program
   .command("doctor")
-  .description("Check CodePass config, provider commands, git context, and log paths.")
+  .description("Check your config, tools, git status, and file locations.")
   .option("-c, --config <path>", "Config file path")
   .option("--cwd <path>", "Working directory", process.cwd())
-  .option("--all", "Show the full popular provider catalog")
+  .option("--all", "Include tools that aren't verified yet")
   .action(async (rawOptions: CliOptions | Command, command?: Command) => {
     await runDoctorCommand(resolveCommandOptions(rawOptions, command));
   });
 
 program
   .command("handoff")
-  .description("Show the current CodePass handoff file path and preview.")
+  .description("Show the current handoff file's path and a preview.")
   .option("-c, --config <path>", "Config file path")
   .option("--cwd <path>", "Working directory", process.cwd())
   .action(async (rawOptions: CliOptions | Command, command?: Command) => {
@@ -93,7 +93,7 @@ program
 
 program
   .command("clear")
-  .description("Delete local CodePass handoff and harness session artifacts.")
+  .description("Delete local handoff and session files.")
   .option("-c, --config <path>", "Config file path")
   .option("--cwd <path>", "Working directory", process.cwd())
   .option("--yes", "Skip confirmation")
@@ -104,7 +104,7 @@ program
 
 program
   .command("setup")
-  .description("Run the guided CodePass harness setup wizard.")
+  .description("Run the guided setup: pick your tools and their order.")
   .option("-c, --config <path>", "Config file path")
   .option("--cwd <path>", "Working directory", process.cwd())
   .action(async (rawOptions: CliOptions | Command, command?: Command) => {
@@ -113,17 +113,17 @@ program
 
 program
   .command("providers")
-  .description("Edit the CodePass harness provider order.")
+  .description("Change which tools you use and their fallback order.")
   .option("-c, --config <path>", "Config file path")
   .option("--cwd <path>", "Working directory", process.cwd())
-  .option("--all", "Browse the full popular provider catalog while editing")
+  .option("--all", "Browse every tool, including ones that aren't verified yet")
   .action(async (rawOptions: CliOptions | Command, command?: Command) => {
     await runProvidersCommand(resolveCommandOptions(rawOptions, command));
   });
 
 program
   .command("session")
-  .description("Show the latest CodePass harness session summary.")
+  .description("Show a summary of your most recent session.")
   .option("-c, --config <path>", "Config file path")
   .option("--cwd <path>", "Working directory", process.cwd())
   .action(async (rawOptions: CliOptions | Command, command?: Command) => {

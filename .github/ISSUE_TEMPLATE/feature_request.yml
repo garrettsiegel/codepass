@@ -1,0 +1,27 @@
+name: Feature request
+description: Suggest an improvement or a new tool to support.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe the situation you're trying to handle, not just the solution.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like keepitmovin to do?
+    validations:
+      required: true
+  - type: input
+    id: tool
+    attributes:
+      label: Requesting a new tool? Which one?
+      description: Name and a link to its CLI. Full support needs its exact usage-limit messages — a link to where those appear (source, issues, docs) helps a lot.
+      placeholder: e.g. "Zed's agent CLI — https://…"
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you've considered

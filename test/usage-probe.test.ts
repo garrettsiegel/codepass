@@ -14,7 +14,7 @@ import {
 import type { InteractiveProviderConfig } from "../src/types.js";
 
 const makeBaseDir = async (): Promise<string> => {
-  const dir = path.join(os.tmpdir(), `codepass-probe-${Date.now()}-${Math.random()}`);
+  const dir = path.join(os.tmpdir(), `kim-probe-${Date.now()}-${Math.random()}`);
   await mkdir(dir, { recursive: true });
   return dir;
 };

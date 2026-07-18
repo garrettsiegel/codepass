@@ -8,7 +8,7 @@ import {
   shouldRunCommand
 } from "./update-runner.js";
 import type { ProviderFreshnessResult, UpdateCommandRunner } from "./update-runner.js";
-import type { InteractiveProviderConfig, CodePassConfig } from "./types.js";
+import type { InteractiveProviderConfig, KeepitmovinConfig } from "./types.js";
 
 export type {
   CommandRunResult,
@@ -19,7 +19,7 @@ export type {
 
 export interface EnsureProviderFreshnessOptions {
   cwd: string;
-  config: CodePassConfig;
+  config: KeepitmovinConfig;
   providers?: InteractiveProviderConfig[];
   interactive?: boolean;
   runner?: UpdateCommandRunner;
@@ -117,7 +117,7 @@ export const ensureProviderFreshness = async (
     const missing = results.filter((result) => result.action === "missing");
 
     for (const result of failures) {
-      log.warn(`${result.label} update failed. CodePass will still try to launch it.\n${result.detail}`);
+      log.warn(`${result.label} update failed. keepitmovin will still try to launch it.\n${result.detail}`);
     }
 
     for (const result of missing) {

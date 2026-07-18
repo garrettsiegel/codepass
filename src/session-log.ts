@@ -2,11 +2,11 @@ import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
 import { ensureArtifactsIgnored } from "./artifacts.js";
-import { agentErrorTypeSchema, DEFAULT_CODEPASS_DIR } from "./config.js";
+import { agentErrorTypeSchema, DEFAULT_KEEPITMOVIN_DIR } from "./config.js";
 import { redactSecrets } from "./redact.js";
 import { resolveFromCwd } from "./paths.js";
 import { reasoningEffortSchema, routingTierSchema } from "./routing-config.js";
-import type { HarnessSessionLog, CodePassConfig } from "./types.js";
+import type { HarnessSessionLog, KeepitmovinConfig } from "./types.js";
 
 const routeDecisionSchema = z.object({
   tier: routingTierSchema,
@@ -61,17 +61,17 @@ const harnessSessionLogSchema = z.object({
 const safeTimestamp = (date: Date): string =>
   date.toISOString().replaceAll(":", "-").replaceAll(".", "-");
 
-export const resolveSessionsDir = (cwd: string, config: CodePassConfig): string =>
+export const resolveSessionsDir = (cwd: string, config: KeepitmovinConfig): string =>
   resolveFromCwd(cwd, config.logs.sessionsDir);
 
 export const writeSessionLog = async (
   cwd: string,
-  config: CodePassConfig,
+  config: KeepitmovinConfig,
   log: HarnessSessionLog
 ): Promise<string> => {
   const sessionsDir = resolveSessionsDir(cwd, config);
   await mkdir(sessionsDir, { recursive: true });
-  await ensureArtifactsIgnored(path.join(cwd, DEFAULT_CODEPASS_DIR));
+  await ensureArtifactsIgnored(path.join(cwd, DEFAULT_KEEPITMOVIN_DIR));
 
   const logPath = path.join(sessionsDir, `${safeTimestamp(new Date(log.startedAt))}.json`);
   const redactedLog: HarnessSessionLog = {
@@ -94,7 +94,7 @@ export const writeSessionLog = async (
 
 export const readLatestSessionLog = async (
   cwd: string,
-  config: CodePassConfig
+  config: KeepitmovinConfig
 ): Promise<HarnessSessionLog | undefined> => {
   const sessionsDir = resolveSessionsDir(cwd, config);
 

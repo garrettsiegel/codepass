@@ -70,6 +70,70 @@ describe("detectLiveFailure — provider limitPatterns", () => {
   });
 });
 
+describe("detectLiveFailure — newly supported tools (Phase 1)", () => {
+  const config = defaultConfig();
+  const forTool = (name: string): InteractiveProviderConfig => {
+    const entry = getProviderCatalog().find((candidate) => candidate.name === name);
+    if (!entry) throw new Error(`no catalog entry for ${name}`);
+    return makeProvider({ name, label: entry.label, limitPatterns: entry.limitPatterns });
+  };
+
+  // [tool, real banner line → switch, prose mention → no switch]
+  const cases: Array<[string, string, string]> = [
+    [
+      "kimi",
+      "Error: [provider.rate_limit] 429 too many requests",
+      "The wrapper prints [provider.rate_limit] when a 429 happens, I'll handle it."
+    ],
+    [
+      "antigravity",
+      "⚠ Individual quota reached. Contact your administrator to enable overages. Resets in 3h38m47s.",
+      "The docs describe an individual quota reached state we should handle gracefully."
+    ],
+    [
+      "opencode",
+      "Provider is overloaded [retrying in 15s attempt #5]",
+      "Let me note the provider is overloaded sometimes and add exponential backoff."
+    ],
+    [
+      "grok",
+      "Retry failed: You hit your weekly limit.",
+      "Remember you hit your weekly limit yesterday so plan the work accordingly."
+    ],
+    [
+      "cursor",
+      "Error: You've hit your usage limit",
+      'The cursor note "your usage limits will reset when your monthly cycle ends" is informational.'
+    ],
+    [
+      "copilot",
+      '✘ Model call failed: {"message":"You have no quota","code":"quota_exceeded"}',
+      "The 402 branch reports you have no quota remaining, which is expected in this test."
+    ]
+  ];
+
+  it.each(cases)("%s: switches on its real limit banner", (name, banner) => {
+    expect(detectLiveFailure(`working...\n${banner}\n`, forTool(name), config, [])).toBe(
+      "rate_limit"
+    );
+  });
+
+  it.each(cases)("%s: does not switch when the banner is only discussed in prose", (name, _banner, prose) => {
+    expect(detectLiveFailure(`${prose}\n`, forTool(name), config, [])).toBeUndefined();
+  });
+
+  it("copilot: ignores a percentage usage warning", () => {
+    const warning = "You've used 85% of your monthly Copilot allowance for premium requests.";
+    expect(detectLiveFailure(`${warning}\n`, forTool("copilot"), config, [])).toBeUndefined();
+  });
+
+  it("kimi: switches on the legacy Python 'LLM provider error:' wrapper line", () => {
+    const line =
+      "LLM provider error: Error code: 429 - {'error': {'message': 'The engine is currently overloaded, please try again later', 'type': 'engine_overloaded_error'}}";
+    expect(detectLiveFailure(`${line}\n`, forTool("kimi"), config, [])).toBe("rate_limit");
+  });
+});
+
 describe("detectLiveFailure — generic patterns keep the prose guard", () => {
   const config = defaultConfig();
   const provider = makeProvider();

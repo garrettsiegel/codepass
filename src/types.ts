@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import type { codepassConfigSchema } from "./config.js";
+import type { keepitmovinConfigSchema } from "./config.js";
 
 export type ProviderName = string;
 
@@ -46,7 +46,7 @@ export type AgentErrorType =
   | "nonzero_exit"
   | "unknown";
 
-// How CodePass reads a tool's own local usage/limit state. Only one kind exists
+// How keepitmovin reads a tool's own local usage/limit state. Only one kind exists
 // today; widen UsageProbeKind to a union when another tool exposes headroom data.
 export type UsageProbeKind = "codex-session-files";
 
@@ -77,7 +77,7 @@ export interface InteractiveProviderConfig {
   usageProbe?: UsageProbeSpec;
 }
 
-export type CodePassConfig = z.infer<typeof codepassConfigSchema>;
+export type KeepitmovinConfig = z.infer<typeof keepitmovinConfigSchema>;
 
 export interface GitContext {
   isGitRepo: boolean;

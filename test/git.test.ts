@@ -11,7 +11,7 @@ import {
 } from "../src/git.js";
 
 const makeTempDir = async (): Promise<string> => {
-  const dir = path.join(os.tmpdir(), `codepass-git-${Date.now()}-${Math.random()}`);
+  const dir = path.join(os.tmpdir(), `kim-git-${Date.now()}-${Math.random()}`);
   await mkdir(dir, { recursive: true });
   return dir;
 };
