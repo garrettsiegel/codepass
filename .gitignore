@@ -28,11 +28,11 @@ pnpm-debug.log*
 
 # Editors
 .idea/
+# Internal planning/marketing docs kept out of the public repo
 marketing/
-PLAN2.md
 BRAND.md
 CHANGELOG.md
-GAMEPLAN.md
+
 # Astro (nested site/) build cache
 .astro/
 site/dist/

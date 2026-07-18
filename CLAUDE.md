@@ -5,9 +5,8 @@ keepitmovin is an interactive terminal harness for coding agents. It launches a 
 Factory Droid, GitHub Copilot CLI, Cline, Ollama, …) inside a PTY, watches its output, and
 on a recognizable limit/failure builds a handoff file and switches to the next configured provider.
 
-For product/UX context and project history see [README.md](./README.md) (usage) and
-[GAMEPLAN.md](./GAMEPLAN.md) (original brief, design vision, and the V1 execution log). This file
-is the agent-facing build/architecture/gotcha guide.
+For product/UX context see [README.md](./README.md) (usage). This file is the agent-facing
+build/architecture/gotcha guide.
 
 ## Build / Test / Lint
 

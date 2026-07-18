@@ -318,5 +318,4 @@ pnpm release patch --dry-run
 ```
 
 See [CLAUDE.md](./CLAUDE.md) for the architecture guide (module layout, conventions, known
-gotchas) and [GAMEPLAN.md](./GAMEPLAN.md) for the project's original brief, design vision, and the
-full V1 execution history.
+gotchas).
