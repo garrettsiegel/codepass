@@ -47,6 +47,24 @@ const template = (): string =>
 
 const wait = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
+// Poll until `read` returns a value containing `needle`, returning that value.
+// Robust on slow CI runners where a fixed sleep can land mid-write (the refresh
+// truncates then writes, so a racing read can momentarily see an empty file).
+const readUntilContains = async (
+  read: () => Promise<string>,
+  needle: string,
+  timeoutMs = 3000
+): Promise<string> => {
+  const deadline = Date.now() + timeoutMs;
+  let last = "";
+  while (Date.now() < deadline) {
+    last = await read();
+    if (last.includes(needle)) return last;
+    await wait(15);
+  }
+  return last;
+};
+
 describe("replaceSection", () => {
   const doc = ["## A", "", "aaa", "", "## B", "", "bbb", "", "## C", "", "ccc", ""].join("\n");
 
@@ -155,11 +173,13 @@ describe("startHandoffWatcher", () => {
   it("refreshes the mechanical sections on the interval and stops on stop()", async () => {
     const { ctx, handoffPath } = await watcherContext();
     const stop = startHandoffWatcher(ctx);
-    await wait(90);
 
-    expect(await readFile(handoffPath, "utf8")).toContain("Last refreshed:");
+    // Poll for the first refresh (interval 30ms) instead of a fixed sleep, so a
+    // slow/loaded CI runner doesn't fail before the tick lands.
+    const refreshed = await readUntilContains(() => readFile(handoffPath, "utf8"), "Last refreshed:");
+    expect(refreshed).toContain("Last refreshed:");
     stop();
-    await wait(50); // let any in-flight tick settle before snapshotting
+    await wait(120); // let any in-flight tick fully settle before snapshotting
     const frozen = await readFile(handoffPath, "utf8");
     await wait(90);
     expect(await readFile(handoffPath, "utf8")).toBe(frozen);
