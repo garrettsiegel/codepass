@@ -51,7 +51,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node -e \"require('node:fs').chmodSync('dist/cli.js', 0o755)\"",
     "clean": "rm -rf dist",
     "dev": "tsx src/cli.ts",
     "lint": "tsc --noEmit",
