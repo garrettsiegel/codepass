@@ -1,0 +1,28 @@
+---
+import { readFile } from "node:fs/promises";
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const source = await readFile(new URL("../../../CHANGELOG.md", import.meta.url), "utf8");
+const escape = (value: string): string => value
+  .replaceAll("&", "&amp;")
+  .replaceAll("<", "&lt;")
+  .replaceAll(">", "&gt;");
+const inline = (value: string): string => escape(value)
+  .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+  .replace(/`(.+?)`/g, "<code>$1</code>");
+const lines = source.split("\n").slice(1);
+const html = lines.map((line) => {
+  if (line.startsWith("## ")) return `<h2>${inline(line.slice(3))}</h2>`;
+  if (line.startsWith("### ")) return `<h3>${inline(line.slice(4))}</h3>`;
+  if (line.startsWith("- ")) return `<p class="changelog-item">• ${inline(line.slice(2))}</p>`;
+  return line.trim() ? `<p>${inline(line)}</p>` : "";
+}).join("\n");
+---
+
+<BaseLayout title="Changelog — keepitmovin" description="Every shipped keepitmovin release and notable change.">
+  <article class="docs-content prose standalone-prose container">
+    <p class="eyebrow">Releases</p>
+    <h1>Changelog</h1>
+    <div set:html={html} />
+  </article>
+</BaseLayout>

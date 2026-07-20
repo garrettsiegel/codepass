@@ -1,0 +1,17 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+---
+
+<BaseLayout title="Claude Code five-hour limit: keep the task moving" description="Prepare a safe coding-agent handoff when Claude Code reaches its five-hour usage window.">
+  <article class="docs-content prose standalone-prose container">
+    <p class="eyebrow">Guide</p><h1>What to do when Claude Code hits its five-hour limit</h1>
+    <p>A usage window can stop the tool while the repository is still in a half-finished state. The safest response is not a larger pasted transcript. It is a short, current task handoff.</p>
+    <h2>Capture the state before the boundary</h2>
+    <p>Record the goal, decisions, files changed, commands and checks, blockers, and the next concrete action. Keep credentials and private transcript material out of anything you plan to share.</p>
+    <h2>Continue with a tool you already use</h2>
+    <p>keepitmovin watches for Claude Code's actual limit status, refreshes a local handoff during work, and can start the next configured tool with that handoff. You can also press <code>Ctrl+]</code> before the limit.</p>
+    <h2>Respect the provider limit</h2>
+    <p>The handoff changes tools; it does not bypass or evade Claude's usage rules. Return to Claude when your account becomes available again.</p>
+    <p><a href="/docs/quickstart">Set up a fallback order →</a></p>
+  </article>
+</BaseLayout>

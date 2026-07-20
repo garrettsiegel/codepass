@@ -128,6 +128,10 @@ export const buildNudgeMessage = (handoffPath: string): string =>
   `Working State, Commands And Checks, Blockers, and Next Step in place. ` +
   `keepitmovin maintains the other sections automatically.\n`;
 
+export const buildCompactionNudgeMessage = (handoffPath: string): string =>
+  `keepitmovin detected that this tool compacted its context. Re-read ${handoffPath}, ` +
+  "then revise Working State, Commands And Checks, Blockers, and Next Step before continuing.\n";
+
 export interface HandoffWatcherContext {
   cwd: string;
   config: KeepitmovinConfig;
@@ -138,7 +142,7 @@ export interface HandoffWatcherContext {
   writeToChild: (text: string) => void;
 }
 
-const narrativeSnapshot = (content: string): string =>
+export const getHandoffNarrativeSnapshot = (content: string): string =>
   NARRATIVE_SECTIONS.map((heading) => extractSectionBody(content, heading)).join("\u0000");
 
 // One interval doing both jobs: refresh the mechanical sections, then nudge the
@@ -171,7 +175,7 @@ export const startHandoffWatcher = (ctx: HandoffWatcherContext): (() => void) =>
 
     // Track when the agent last touched its own sections (mechanical refreshes
     // never change these, so this is the true narrative-staleness clock).
-    const snapshot = narrativeSnapshot(content);
+    const snapshot = getHandoffNarrativeSnapshot(content);
     if (lastNarrative === undefined) {
       lastNarrative = snapshot;
     } else if (snapshot !== lastNarrative) {

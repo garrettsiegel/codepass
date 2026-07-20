@@ -1,0 +1,19 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+const posts = [
+  ["What to do when Claude Code hits its five-hour limit", "/blog/claude-code-five-hour-limit", "Keep a long task moving without rebuilding context."],
+  ["Continuity across Claude Code weekly limits", "/blog/claude-code-weekly-limit-continuity", "Plan legitimate fallback work instead of trying to evade provider limits."],
+  ["How Codex usage limits affect long coding sessions", "/blog/codex-usage-limit", "Use local headroom signals and a prepared handoff."],
+  ["Switch from Claude Code to Codex mid-task", "/blog/switch-claude-code-to-codex", "A practical, local handoff workflow."],
+];
+---
+
+<BaseLayout title="keepitmovin blog" description="Practical guides for keeping long coding-agent sessions moving.">
+  <article class="docs-content prose standalone-prose container">
+    <p class="eyebrow">Guides</p><h1>Keep the task, change the tool.</h1>
+    <p>Practical notes on limits, handoffs, and cross-tool coding continuity.</p>
+    <div class="content-cards">
+      {posts.map(([title, href, body]) => <a class="content-card" href={href}><h2>{title}</h2><p>{body}</p></a>)}
+    </div>
+  </article>
+</BaseLayout>

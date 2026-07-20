@@ -1,4 +1,4 @@
-import type { ProviderIntegrationType, UsageProbeSpec } from "./types.js";
+import type { CompactionProbeSpec, ProviderIntegrationType, UsageProbeSpec } from "./types.js";
 
 export type ProviderCatalogGroup = "harness" | "guided";
 
@@ -35,6 +35,7 @@ export interface ProviderCatalogEntry {
   // Local-file usage probe for this tool, if it writes readable headroom state.
   // Codex: rollout JSONLs under ~/.codex/sessions. Claude Code has none today.
   usageProbe?: UsageProbeSpec;
+  compactionProbe?: CompactionProbeSpec;
   installCommands?: ProviderCommandSpec[];
   updateCommands?: ProviderCommandSpec[];
   install: string;

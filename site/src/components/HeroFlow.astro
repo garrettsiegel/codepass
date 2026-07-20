@@ -1,0 +1,221 @@
+<div class="hero-flow" data-hero-flow-root aria-hidden="true">
+  <canvas class="hero-flow-canvas" data-hero-flow></canvas>
+</div>
+
+<script>
+  import {
+    DEFAULT_HERO_FLOW_SETTINGS,
+    normalizeHeroFlowSettings,
+    type HeroFlowSettings,
+  } from "../lib/hero-flow-settings";
+
+  const canvases = document.querySelectorAll<HTMLCanvasElement>("[data-hero-flow]");
+
+  canvases.forEach((canvas) => {
+    const context = canvas.getContext("2d");
+    if (!context) return;
+    const root = canvas.closest<HTMLElement>("[data-hero-flow-root]");
+
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const glyphRamp = ["·", "·", ":", "+", "/", "›", "»"];
+    let width = 1;
+    let height = 1;
+    let frame = 0;
+    let previousFrame = 0;
+    const animationStartedAt = performance.now();
+    let visible = true;
+    let textColor = "#f3efe6";
+    let accentColor = "#ff5a1f";
+    let cells: Cell[] = [];
+    let settings = { ...DEFAULT_HERO_FLOW_SETTINGS };
+
+    type Cell = {
+      x: number;
+      y: number;
+      column: number;
+      row: number;
+      seed: number;
+    };
+
+    const seeded = (index: number, salt: number) => {
+      const value = Math.sin(index * 91.17 + salt * 43.71) * 43758.5453;
+      return value - Math.floor(value);
+    };
+
+    const makeGrid = () => {
+      let spacing = settings.cellSpacing;
+      let columns = Math.ceil(width / spacing);
+      let rows = Math.ceil(height / spacing);
+
+      while (columns * rows > settings.maxCells) {
+        spacing += 1;
+        columns = Math.ceil(width / spacing);
+        rows = Math.ceil(height / spacing);
+      }
+
+      cells = [];
+      for (let row = 0; row < rows; row += 1) {
+        for (let column = 0; column < columns; column += 1) {
+          const index = row * columns + column;
+          cells.push({
+            x: column * spacing + spacing / 2,
+            y: row * spacing + spacing / 2,
+            column,
+            row,
+            seed: seeded(index, 1) * Math.PI * 2,
+          });
+        }
+      }
+    };
+
+    const readColors = () => {
+      const styles = getComputedStyle(document.documentElement);
+      textColor = styles.getPropertyValue("--text").trim() || textColor;
+      accentColor = styles.getPropertyValue("--accent").trim() || accentColor;
+    };
+
+    const resize = () => {
+      const bounds = canvas.getBoundingClientRect();
+      const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+      width = Math.max(1, bounds.width);
+      height = Math.max(1, bounds.height);
+      canvas.width = Math.round(width * pixelRatio);
+      canvas.height = Math.round(height * pixelRatio);
+      context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+      readColors();
+      makeGrid();
+    };
+
+    const draw = (timeInMilliseconds: number) => {
+      const time = (timeInMilliseconds / 1000) * settings.speed;
+
+      context.clearRect(0, 0, width, height);
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+
+      cells.forEach((cell) => {
+        const normalizedX = (cell.x / width) * 2 - 1;
+        const normalizedY = (cell.y / height) * 2 - 1;
+        const ribbonCenterA =
+          (Math.sin(normalizedX * 3.2 * settings.detail + time * 0.42) * 0.24 +
+            Math.sin(normalizedX * 8.5 * settings.detail - time * 0.24) * 0.05) *
+          settings.ribbonAmplitude;
+        const ribbonCenterB =
+          (Math.cos(normalizedX * 2.6 * settings.detail - time * 0.3) * 0.29 -
+            Math.sin(normalizedX * 6 * settings.detail + time * 0.18) * 0.04) *
+          settings.ribbonAmplitude;
+        const distanceA = normalizedY - ribbonCenterA;
+        const distanceB = normalizedY - ribbonCenterB;
+        const widthScale = settings.ribbonWidth * settings.ribbonWidth;
+        const ribbonA = Math.exp(-(distanceA * distanceA) * (34 / widthScale));
+        const ribbonB = Math.exp(-(distanceB * distanceB) * (42 / widthScale));
+        const contourA =
+          0.5 +
+          0.5 *
+            Math.sin(
+              normalizedX * 18 * settings.detail +
+                normalizedY * 7 * settings.detail -
+                time * 0.72 +
+                cell.seed,
+            );
+        const contourB =
+          0.5 +
+          0.5 *
+            Math.cos(
+              normalizedX * 13 * settings.detail -
+                normalizedY * 9 * settings.detail +
+                time * 0.56 -
+                cell.seed * 0.4,
+            );
+        const signal = Math.max(
+          ribbonA * (0.32 + contourA * 0.68),
+          ribbonB * (0.22 + contourB * 0.56),
+        );
+
+        if (signal < settings.visibilityThreshold) return;
+
+        const edgeFade = Math.min(
+          1,
+          Math.max(0, cell.x / 110),
+          Math.max(0, (width - cell.x) / 110),
+          Math.max(0, cell.y / 90),
+          Math.max(0, (height - cell.y) / 150),
+        );
+        const glyphIndex = Math.min(
+          glyphRamp.length - 1,
+          Math.floor(signal * glyphRamp.length),
+        );
+        const accent =
+          signal > settings.accentThreshold &&
+          (cell.column + cell.row * 3) % settings.accentEvery === 0;
+        const size = settings.baseGlyphSize + signal * settings.glyphSizeRange;
+
+        context.globalAlpha = (0.025 + signal * settings.opacity) * edgeFade;
+        context.fillStyle = accent ? accentColor : textColor;
+        context.font = `${accent || signal > 0.78 ? 600 : 400} ${size}px "JetBrains Mono", monospace`;
+        context.fillText(glyphRamp[glyphIndex], cell.x, cell.y);
+      });
+
+      context.globalAlpha = 1;
+    };
+
+    const tick = (time: number) => {
+      if (time - previousFrame >= 1000 / settings.frameRate) {
+        draw(time - animationStartedAt);
+        previousFrame = time;
+      }
+      if (visible && !reducedMotion.matches) frame = requestAnimationFrame(tick);
+    };
+
+    const start = () => {
+      cancelAnimationFrame(frame);
+      previousFrame = 0;
+      const currentTime = reducedMotion.matches
+        ? 0
+        : performance.now() - animationStartedAt;
+      draw(currentTime);
+      if (visible && !reducedMotion.matches) frame = requestAnimationFrame(tick);
+    };
+
+    const resizeObserver = new ResizeObserver(() => {
+      resize();
+      start();
+    });
+
+    const intersectionObserver = new IntersectionObserver(([entry]) => {
+      visible = entry?.isIntersecting ?? true;
+      if (visible) start();
+      else cancelAnimationFrame(frame);
+    });
+
+    const onMotionChange = () => start();
+    const onColorChange = () => {
+      readColors();
+      start();
+    };
+    const onSettingsChange = (event: Event) => {
+      const detail = (event as CustomEvent<Partial<HeroFlowSettings>>).detail;
+      const nextSettings = normalizeHeroFlowSettings(detail ?? {});
+      const gridChanged =
+        settings.cellSpacing !== nextSettings.cellSpacing ||
+        settings.maxCells !== nextSettings.maxCells;
+      settings = nextSettings;
+      root?.style.setProperty(
+        "--hero-flow-vignette",
+        `${settings.vignetteStrength * 100}%`,
+      );
+      if (gridChanged) makeGrid();
+      start();
+    };
+    const colorScheme = window.matchMedia("(prefers-color-scheme: light)");
+    reducedMotion.addEventListener("change", onMotionChange);
+    colorScheme.addEventListener("change", onColorChange);
+    window.addEventListener("keepitmovin:hero-flow-settings", onSettingsChange);
+    root?.style.setProperty(
+      "--hero-flow-vignette",
+      `${settings.vignetteStrength * 100}%`,
+    );
+    resizeObserver.observe(canvas);
+    intersectionObserver.observe(canvas);
+  });
+</script>

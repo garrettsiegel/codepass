@@ -1,0 +1,17 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+---
+
+<BaseLayout title="Codex usage limits in long coding sessions" description="Understand Codex usage headroom and prepare a clean handoff before a long task stops.">
+  <article class="docs-content prose standalone-prose container">
+    <p class="eyebrow">Guide</p><h1>How Codex usage limits affect long coding sessions</h1>
+    <p>Codex writes local rate-limit snapshots into its session records. That makes it possible to see approaching headroom before the tool emits a hard limit message.</p>
+    <h2>Use the signal conservatively</h2>
+    <p>keepitmovin reads the local percentage and can move on at a configured threshold. It fails soft if the file is absent or its format changes, while terminal limit detection remains available.</p>
+    <h2>Prepare more than changed files</h2>
+    <p>A useful fallback also records why the changes were made, what tests ran, what is still uncertain, and what the next tool should do first.</p>
+    <h2>Watch without handing over control</h2>
+    <p>Loop, burn-rate, and streaming-stall signals are warnings. They do not automatically switch tools; false-positive automation is worse than a visible warning.</p>
+    <p><a href="/docs/configuration">Configure Codex usage checks →</a></p>
+  </article>
+</BaseLayout>

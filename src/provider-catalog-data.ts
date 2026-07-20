@@ -32,6 +32,7 @@ const SUPPORTED_CORE_CATALOG: ProviderCatalogEntry[] = [
     controllable: true,
     args: DEFAULT_SESSION_ARGS,
     handoffArgs: DEFAULT_HANDOFF_ARGS,
+    compactionProbe: { kind: "claude-transcript" },
     limitPatterns: [
       "5-hour limit reached",
       "upgrade to increase your usage limit",
@@ -67,6 +68,7 @@ const SUPPORTED_CORE_CATALOG: ProviderCatalogEntry[] = [
       "reached your usage limit"
     ],
     usageProbe: { kind: "codex-session-files" },
+    compactionProbe: { kind: "codex-session-files" },
     install: "Install Codex CLI, then run `codex login`.",
     auth: "Run `codex login` or configure your OpenAI API key.",
     updateCommands: [

@@ -36,3 +36,22 @@ Swap the two providers in `keepitmovin.config.json` for the catalog `claude` / `
 entries and drive a manual `Ctrl+]` switch from the tape instead of the scripted
 limit line. That's non-deterministic and needs both tools installed and
 authenticated, which is why the committed demo uses stubs.
+
+For the launch recording, `real-demo.tape` and `real-keepitmovin.config.json`
+run an authenticated Claude Code → Codex session in
+`/private/tmp/keepitmovin-real-demo`, trigger the visible manual switch, and
+write `marketing/product-hunt-demo.mp4`. The task is intentionally tiny and the
+tape disables usage probes and watchdog warnings so the recording demonstrates
+the handoff itself rather than manufacturing a limit event. The launch video
+uses `product-hunt-narration.txt` as its short voice-over script.
+
+After recording, render and mux the timed macOS voice-over:
+
+```sh
+say -r 175 -o /private/tmp/keepitmovin-product-hunt.aiff -f demo/product-hunt-narration.txt
+ffmpeg -y -i marketing/product-hunt-demo.mp4 \
+  -i /private/tmp/keepitmovin-product-hunt.aiff \
+  -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -b:a 128k -af apad -shortest \
+  /private/tmp/product-hunt-demo-with-audio.mp4
+mv /private/tmp/product-hunt-demo-with-audio.mp4 marketing/product-hunt-demo.mp4
+```

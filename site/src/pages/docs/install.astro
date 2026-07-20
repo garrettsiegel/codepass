@@ -7,7 +7,7 @@ import InstallCommand from "../../components/InstallCommand.astro";
   title="Install — keepitmovin docs"
   description="Install keepitmovin with npm and verify your setup."
 >
-  <p class="eyebrow">// docs</p>
+  <p class="eyebrow">Docs</p>
   <h1>Install</h1>
 
   <h2>Requirements</h2>
@@ -36,5 +36,14 @@ import InstallCommand from "../../components/InstallCommand.astro";
   <h2>Next step</h2>
   <p>
     Run <code>kim</code> and follow the <a href="/docs/quickstart">quickstart</a>.
+  </p>
+
+  <h2>Optional: install read-only MCP continuity</h2>
+  <pre><code>kim mcp status
+kim mcp install</code></pre>
+  <p>
+    The installer previews user-wide changes and asks before writing. It adds
+    only a read-only keepitmovin server entry and can undo it with
+    <code>kim mcp remove</code>.
   </p>
 </DocsLayout>

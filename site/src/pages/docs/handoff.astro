@@ -6,12 +6,25 @@ import DocsLayout from "../../layouts/DocsLayout.astro";
   title="How handoff works — keepitmovin docs"
   description="The handoff file: what it carries, who writes it, and the honest limitation."
 >
-  <p class="eyebrow">// docs</p>
+  <p class="eyebrow">Docs</p>
   <h1>How handoff works</h1>
   <p>
     The handoff file — <code>.keepitmovin/current/handoff.md</code> — is the
     shared continuity layer between your tools. Every tool reads it and
     updates it as it works, so the next tool starts informed instead of blank.
+  </p>
+
+  <h2>Receipt and compaction recovery</h2>
+  <p>
+    After a switch, the receiving tool is asked to emit one structured line
+    restating the goal and next action. keepitmovin reports this as
+    <strong>handoff received</strong>, not proof that the agent understood every
+    detail. A missing receipt warns after 60 seconds and work continues.
+  </p>
+  <p>
+    Claude Code and Codex also write structured local compaction events. When
+    one appears, keepitmovin refreshes the handoff and asks the same running
+    tool to reread it. It records the recovery but does not switch tools.
   </p>
 
   <h2>What's in it</h2>

@@ -1,5 +1,7 @@
 # CLAUDE.md — keepitmovin
 
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 keepitmovin is an interactive terminal harness for coding agents. It launches a coding tool
 (Claude Code, Codex, Antigravity, opencode, Grok Build, Cursor Agent, Aider, Goose, Amp,
 Factory Droid, GitHub Copilot CLI, Cline, Ollama, …) inside a PTY, watches its output, and
@@ -17,7 +19,14 @@ Run from the monorepo root (prefer `~/Library/pnpm/pnpm` — see the pnpm PATH g
 ~/Library/pnpm/pnpm --filter keepitmovin test    # vitest run
 ~/Library/pnpm/pnpm --filter keepitmovin lint    # tsc --noEmit
 ~/Library/pnpm/pnpm --filter keepitmovin dev     # tsx src/cli.ts (run the CLI without building)
+
+# Single test file (extra args pass through to `vitest run` as filters):
+~/Library/pnpm/pnpm --filter keepitmovin test test/errors.test.ts
 ```
+
+Tests live in `test/<module>.test.ts`, one file per `src/` module (vitest defaults, no
+`vitest.config`). Releases go through `pnpm release <patch|minor|major>` (`scripts/release.sh`:
+version bump + tag + push + npm publish; supports `--dry-run`).
 
 Before finishing any task: `build`, `test`, and `lint` must all pass. Then run root `pnpm build`
 (Turborepo) to confirm the monorepo still builds.
@@ -52,6 +61,15 @@ Other supporting modules:
 | `src/updates.ts`, `src/update-runner.ts` | Tool self-update: orchestration + spinner UI, then the runner primitives. |
 | `src/cli.ts`, `src/cli-options.ts`, `src/commands/*.ts` | `commander` command wiring; each command's logic lives in its own `src/commands/<name>.ts`. |
 | `src/index.ts` | The public export surface (barrel) — keep exports intentional. |
+
+## Beyond `src/`
+
+| Dir | What it is |
+|---|---|
+| `site/` | The keepitmovin.dev website — Astro 5, fully static, no UI framework. **Standalone package (`keepitmovin-site`) with its own `pnpm-lock.yaml`, not part of the monorepo workspace** — run `pnpm install` / `pnpm dev` / `pnpm build` from inside `site/`. Deployed on Vercel (frozen lockfile install, so keep `site/pnpm-lock.yaml` in sync with its `package.json`). Docs pages mirror README wording — re-sync them when README behavior changes. |
+| `demo/` | VHS recording setup for the README hero GIF (`public/kim-demo.gif`). It drives the **real** harness; only the agents are stubs (`agent.sh`), with catalog-avoiding internal names `demo-a`/`demo-b`. See `demo/README.md` before regenerating. |
+| `marketing/` | Launch copy (Product Hunt listing, X thread, comparison table). Prose only — keep claims in sync with actual tool support. |
+| `scripts/` | `release.sh` (the `pnpm release` flow). |
 
 ## Conventions
 

@@ -1,0 +1,17 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+---
+
+<BaseLayout title="Claude Code weekly limit continuity" description="A legitimate continuity workflow for work that outlasts a Claude Code weekly usage allowance.">
+  <article class="docs-content prose standalone-prose container">
+    <p class="eyebrow">Guide</p><h1>Continuity across Claude Code weekly limits</h1>
+    <p>A weekly limit is an account boundary, not a problem to circumvent. The practical question is how to preserve legitimate work while that provider is unavailable.</p>
+    <h2>Separate task state from chat history</h2>
+    <p>A receiving agent rarely needs the entire conversation. It needs the current objective, settled decisions, repository state, verification already run, blockers, and the next action.</p>
+    <h2>Use an allowed fallback</h2>
+    <p>If you separately have access to Codex, Kimi, Grok, or a local Ollama model, you can continue there under that tool's own account and terms. keepitmovin carries a local handoff; it does not share credentials or pool accounts.</p>
+    <h2>Leave a return path</h2>
+    <p>Keep the handoff current while the fallback tool works. When Claude becomes available, it can read the same project state instead of starting from memory.</p>
+    <p><a href="/docs/handoff">Inspect the handoff format →</a></p>
+  </article>
+</BaseLayout>

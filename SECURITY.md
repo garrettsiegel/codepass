@@ -2,8 +2,8 @@
 
 ## Supported versions
 
-keepitmovin is pre-1.0-style rapid development; only the latest published version on npm receives
-security fixes. Please upgrade before reporting.
+keepitmovin moves quickly; only the latest published major version on npm receives security fixes.
+Please upgrade before reporting.
 
 ## Reporting a vulnerability
 

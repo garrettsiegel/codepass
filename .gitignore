@@ -36,3 +36,5 @@ CHANGELOG.md
 # Astro (nested site/) build cache
 .astro/
 site/dist/
+.vercel
+.env*.local

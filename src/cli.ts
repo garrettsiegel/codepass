@@ -11,6 +11,7 @@ import { runLaunchCommand } from "./commands/launch.js";
 import { runProvidersCommand } from "./commands/providers.js";
 import { runSessionCommand } from "./commands/session.js";
 import { runSetupCommand } from "./commands/setup.js";
+import { runMcpChangeCommand, runMcpServeCommand, runMcpStatusCommand } from "./commands/mcp.js";
 import {
   resolveCommandOptions,
   splitExplicitTaskArgv,
@@ -129,5 +130,32 @@ program
   .action(async (rawOptions: CliOptions | Command, command?: Command) => {
     await runSessionCommand(resolveCommandOptions(rawOptions, command));
   });
+
+const mcp = program
+  .command("mcp")
+  .description("Serve or install keepitmovin's read-only MCP continuity integration.");
+
+mcp
+  .command("serve")
+  .description("Start the local read-only MCP server over stdio.")
+  .option("--cwd <path>", "Fallback project directory", process.cwd())
+  .action(async (options: { cwd?: string }) => {
+    await runMcpServeCommand({ cwd: options.cwd, version });
+  });
+
+mcp
+  .command("status")
+  .description("Show MCP support and installation status for every keepitmovin tool.")
+  .action(runMcpStatusCommand);
+
+mcp
+  .command("install")
+  .description("Preview and install the MCP entry user-wide in every capable client.")
+  .action(async () => runMcpChangeCommand("install"));
+
+mcp
+  .command("remove")
+  .description("Preview and remove only keepitmovin-owned MCP entries.")
+  .action(async () => runMcpChangeCommand("remove"));
 
 await program.parseAsync(explicitTask.argv);

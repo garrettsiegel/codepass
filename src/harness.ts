@@ -24,6 +24,7 @@ import { writeSessionLog } from "./session-log.js";
 import { chooseSwitchProvider, type SwitchSelector } from "./switch-menu.js";
 import { renderCommercialBreak } from "./terminal-ui.js";
 import type { UsageProbeOptions } from "./usage-probe.js";
+import type { CompactionProbeOptions } from "./compaction-probe.js";
 import { classifyTask } from "./routing.js";
 import { resolveProviderRoute } from "./model-routing.js";
 import type { RouteOverrides } from "./model-routing.js";
@@ -40,6 +41,7 @@ export interface HarnessOptions {
   output?: NodeJS.WriteStream;
   // Test-only injection: points provider usage probes at a fixture directory.
   usageProbeOptions?: UsageProbeOptions;
+  compactionProbeOptions?: CompactionProbeOptions;
   task?: string;
   routeDecision?: RouteDecision;
   routeOverrides?: RouteOverrides;
@@ -126,7 +128,8 @@ export const runHarness = async (
       options.ptyFactory ?? defaultPtyFactory,
       options.input,
       options.output,
-      options.usageProbeOptions
+      options.usageProbeOptions,
+      options.compactionProbeOptions
     );
     attempts.push(
       options.config.routing.telemetry

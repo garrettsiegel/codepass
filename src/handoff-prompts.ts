@@ -36,5 +36,6 @@ export const buildProviderHandoffPrompt = (
   "",
   ...(task ? ["Original task:", task, ""] : []),
   "keepitmovin cannot transfer private chat state. The handoff file is the shared continuity layer.",
+  "Before continuing, reply with exactly one machine-readable line beginning KEEPITMOVIN_RECEIVED followed by a JSON object with string fields goal and next. Keep both values short. Do not wrap the line in a code block.",
   "After reading it, continue the work and keep your sections of the handoff updated after each subtask (keepitmovin maintains the mechanical sections automatically). Revise in place rather than appending."
 ].join("\n");

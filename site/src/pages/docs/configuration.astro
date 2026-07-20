@@ -4,9 +4,9 @@ import DocsLayout from "../../layouts/DocsLayout.astro";
 
 <DocsLayout
   title="Configuration — keepitmovin docs"
-  description="Every keepitmovin config setting, with defaults: fallback order, usage probes, handoff refresh, tool updates."
+  description="Every keepitmovin config setting, with defaults: fallback order, usage probes, handoff refresh, watchdog warnings, tool updates."
 >
-  <p class="eyebrow">// docs</p>
+  <p class="eyebrow">Docs</p>
   <h1>Configuration</h1>
   <p>
     You never need a config file to start — the setup wizard writes one for
@@ -37,6 +37,20 @@ import DocsLayout from "../../layouts/DocsLayout.astro";
       <tr><td><code>enabled</code></td><td><code>true</code></td><td>Master switch for all usage probes.</td></tr>
       <tr><td><code>thresholdPercent</code></td><td><code>95</code></td><td>Switch when a tool's highest usage window reaches this percent.</td></tr>
       <tr><td><code>pollIntervalMs</code></td><td><code>30000</code></td><td>How often to re-check while a tool runs.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Warning-only watchdog</h2>
+  <p>
+    Loop, abnormal Codex burn, and streaming-stall signals produce local
+    warnings only. They never stop or switch a tool. Configure under
+    <code>harness.watchdog</code>:
+  </p>
+  <table>
+    <thead><tr><th>Field</th><th>Default</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>enabled</code></td><td><code>true</code></td><td>Enable conservative loop, burn, and stall warnings.</td></tr>
+      <tr><td><code>action</code></td><td><code>"warn"</code></td><td>Warning-only; automatic switching is intentionally unavailable.</td></tr>
     </tbody>
   </table>
   <p>

@@ -41,15 +41,17 @@ const faqs = [
   title="FAQ — keepitmovin docs"
   description="The questions everyone asks first about keepitmovin."
 >
-  <p class="eyebrow">// docs</p>
+  <p class="eyebrow">Docs</p>
   <h1>FAQ</h1>
 
-  {
-    faqs.map((faq) => (
-      <section class="faq-entry">
-        <h2>{faq.q}</h2>
-        <p>{faq.a}</p>
-      </section>
-    ))
-  }
+  <div class="faq-list">
+    {
+      faqs.map((faq) => (
+        <details class="faq-item">
+          <summary>{faq.q}</summary>
+          <p>{faq.a}</p>
+        </details>
+      ))
+    }
+  </div>
 </DocsLayout>

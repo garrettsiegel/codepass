@@ -81,10 +81,47 @@ const lines = [
     const isTyped = (cls: string) => /\b(claude|codex|kim)\b/.test(cls);
     const isBox = (cls: string) => cls.includes("box-");
 
+    // Only animate while the sim is on screen and the tab is visible.
+    // The loop parks at the next gate() when either condition drops.
+    let running = false;
+    let gateResolve: (() => void) | null = null;
+    const gate = () =>
+      running ? Promise.resolve() : new Promise<void>((r) => (gateResolve = r));
+    const setRunning = (value: boolean) => {
+      running = value;
+      if (value && gateResolve) {
+        gateResolve();
+        gateResolve = null;
+      }
+    };
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.target === sim) {
+            setRunning(entry.isIntersecting && !document.hidden);
+          }
+        }
+      },
+      { threshold: 0.15 }
+    );
+    io.observe(sim);
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        setRunning(false);
+      } else {
+        // Re-observing re-fires the callback with the current intersection.
+        io.unobserve(sim);
+        io.observe(sim);
+      }
+    });
+
     async function play() {
       for (;;) {
+        await gate();
         sim!.innerHTML = "";
         for (const line of lines) {
+          await gate();
           const el = document.createElement("span");
           el.className = line.cls;
           sim!.appendChild(el);

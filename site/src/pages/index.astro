@@ -2,10 +2,14 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import InstallCommand from "../components/InstallCommand.astro";
 import HandoffSim from "../components/HandoffSim.astro";
+import HeroFlow from "../components/HeroFlow.astro";
+import HeroFlowEditor from "../components/HeroFlowEditor.astro";
 
 const title = "keepitmovin — Agents hit limits. Your work doesn't.";
 const description =
-  "keepitmovin runs your coding agents in one terminal, watches for rate limits, and hands off to the next tool with full context — so you never stop mid-task.";
+  "keepitmovin runs your coding agents in one terminal, watches for rate limits, and hands the next tool a structured record of the work.";
+const tallyUrl = import.meta.env.PUBLIC_TALLY_WAITLIST_URL?.trim();
+const tallyConfigured = Boolean(tallyUrl?.match(/^https:\/\/tally\.so\/r\/[A-Za-z0-9]+$/));
 
 // Brand marks — official simple-icons SVG path data (single-color, currentColor,
 // 24×24 viewBox), inlined so there's no runtime dependency. Tools without a clean
@@ -43,17 +47,17 @@ const tools = [
 
 const steps = [
   {
-    num: "01",
+    label: "Limit hit",
     title: "A tool hits its limit",
     body: "keepitmovin watches the terminal and recognizes the exact limit message the moment it appears.",
   },
   {
-    num: "02",
+    label: "Context packed",
     title: "Your context is packed",
     body: "The handoff file carries your goal, decisions, and recent changes — refreshed as the tool works.",
   },
   {
-    num: "03",
+    label: "Next tool resumes",
     title: "The next tool resumes",
     body: "It launches with the handoff loaded and picks up where you stopped. You keep typing.",
   },
@@ -86,13 +90,14 @@ const vs = [
 <BaseLayout title={title} description={description}>
   <!-- Hero -->
   <section class="hero">
+    <HeroFlow />
     <div class="container">
-      <p class="kicker">one terminal · every tool you pay for</p>
-      <h1>Agents hit limits. Your work <em>doesn't.</em></h1>
+      <p class="hero-badge">Open source · MIT · one terminal</p>
+      <h1>Agents hit limits. Your work doesn't.</h1>
       <p class="subline">
         keepitmovin runs your coding agents in one terminal, watches for rate
-        limits, and hands off to the next tool with full context — so you
-        never stop mid-task.
+        limits, and hands the next tool a structured record of the goal,
+        changes, blockers, and next step.
       </p>
       <div class="hero-actions">
         <InstallCommand command="npm install -g keepitmovin" />
@@ -104,13 +109,80 @@ const vs = [
       <HandoffSim />
     </div>
   </section>
+  <HeroFlowEditor />
 
-  <!-- Tools ticker -->
-  <div class="ticker" aria-hidden="true">
-    <div class="ticker-track">
+  <!-- Trust -->
+  <section class="section" id="trust">
+    <div class="container">
+      <div class="section-head">
+        <p class="eyebrow">Local by design</p>
+        <h2>Your continuity stays with your project.</h2>
+        <p class="lede">
+          keepitmovin does not upload handoffs or session logs. Your coding
+          tools still connect to their own providers under their own terms.
+        </p>
+      </div>
+      <div class="trust-grid">
+        <article class="trust-card">
+          <h3>Local session data</h3>
+          <p>Handoffs and summaries live under <code>.keepitmovin/</code>, which gets its own gitignore.</p>
+        </article>
+        <article class="trust-card">
+          <h3>No extra model call</h3>
+          <p>The active tool maintains the handoff during normal work. keepitmovin does not call another model.</p>
+        </article>
+        <article class="trust-card">
+          <h3>Defensive redaction</h3>
+          <p>Common credential formats are redacted before persistence. Treat local artifacts as sensitive anyway.</p>
+        </article>
+        <article class="trust-card">
+          <h3>Open source</h3>
+          <p>The CLI is MIT licensed. Read the code, audit the behavior, and keep using it for free.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="section" id="faq">
+    <div class="container narrow-section">
+      <div class="section-head">
+        <p class="eyebrow">Before you ask</p>
+        <h2>Practical continuity, not a cloned chat.</h2>
+      </div>
+      <div class="faq-list">
+        <details class="faq-item">
+          <summary>Does it transfer the private chat session?</summary>
+          <p>No. The next tool starts fresh and reads a live handoff containing the goal, decisions, changes, checks, blockers, and next action.</p>
+        </details>
+        <details class="faq-item">
+          <summary>Is the handoff just another stale context file?</summary>
+          <p>No. The working agent is prompted to revise it after each subtask, while keepitmovin refreshes repository state and recent changes during the session.</p>
+        </details>
+        <details class="faq-item">
+          <summary>Does keepitmovin send my data anywhere?</summary>
+          <p>keepitmovin itself does not upload handoffs or logs. The agents it launches still communicate with their own providers.</p>
+        </details>
+        <details class="faq-item">
+          <summary>Can I switch before a limit is hit?</summary>
+          <p>Yes. Press <kbd>Ctrl+]</kbd> to pack the current context and move to the next tool whenever you choose.</p>
+        </details>
+        <details class="faq-item">
+          <summary>Does it commit or push code?</summary>
+          <p>Never. keepitmovin watches, records local continuity, and switches tools. The launched tools retain their own permissions and behavior.</p>
+        </details>
+      </div>
+      <p class="section-link"><a href="/docs/faq">Read the full FAQ →</a></p>
+    </div>
+  </section>
+
+  <!-- Works-with bar -->
+  <div class="container">
+    <p class="works-bar">
+      <span class="works-label">Works with</span>
       {
-        [...tools, ...tools].map((t) => (
-          <span>
+        tools.map((t) => (
+          <span class="works-item">
             {t.icon ? (
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d={t.icon} />
@@ -122,57 +194,52 @@ const vs = [
           </span>
         ))
       }
-    </div>
+    </p>
   </div>
 
-  <!-- 01 · How it works -->
+  <!-- The handoff -->
   <section class="section">
     <div class="container">
       <div class="section-head">
-        <span class="section-num">01</span>
-        <div>
-          <h2>The handoff is <em>automatic.</em></h2>
-          <p class="lede">
-            When a tool hits its usage limit, keepitmovin detects the exact
-            limit message and starts your next tool. No copy-pasting context,
-            no lost thread, no "where was I".
-          </p>
-        </div>
+        <p class="eyebrow">The handoff</p>
+        <h2>The handoff is automatic.</h2>
+        <p class="lede">
+          When a tool hits its usage limit, keepitmovin detects the exact
+          limit message and starts your next tool. No copy-pasting context,
+          no lost thread, no "where was I".
+        </p>
       </div>
-      <ol class="steps" data-reveal>
+      <ol class="steps">
         {
           steps.map((step) => (
             <li>
-              <span class="step-num">{step.num}</span>
+              <span class="step-label">{step.label}</span>
               <h3>{step.title}</h3>
               <p>{step.body}</p>
-              <span class="step-arrow">»</span>
             </li>
           ))
         }
       </ol>
       <p class="aside">
-        <span class="arrow">→</span> Switch on your own schedule: press
-        <kbd>Ctrl+]</kbd> to hand off to the next tool anytime. Everything
-        keepitmovin writes lives in <code>.keepitmovin/</code> in your project.
+        Switch on your own schedule: press <kbd>Ctrl+]</kbd> to hand off to
+        the next tool anytime. Everything keepitmovin writes lives in
+        <code>.keepitmovin/</code> in your project.
       </p>
     </div>
   </section>
 
-  <!-- 02 · Comparison -->
+  <!-- Comparison -->
   <section class="section">
     <div class="container">
       <div class="section-head">
-        <span class="section-num">02</span>
-        <div>
-          <h2>One long session, not <em>five short ones.</em></h2>
-          <p class="lede">
-            You already pay for these tools. keepitmovin chains their limits
-            into one continuous working session.
-          </p>
-        </div>
+        <p class="eyebrow">The difference</p>
+        <h2>One long session, not five short ones.</h2>
+        <p class="lede">
+          You already pay for these tools. keepitmovin chains their limits
+          into one continuous working session.
+        </p>
       </div>
-      <div class="vs" data-reveal>
+      <div class="vs">
         <div class="vs-panel kim">
           <h3>With keepitmovin</h3>
           <ul>
@@ -203,25 +270,30 @@ const vs = [
     </div>
   </section>
 
-  <!-- 03 · Tools wall -->
+  <!-- Tools wall -->
   <section class="section">
     <div class="container">
       <div class="section-head">
-        <span class="section-num">03</span>
-        <div>
-          <h2>Works with the tools you <em>already use.</em></h2>
-          <p class="lede">
-            Nine tools supported today. keepitmovin detects what's installed;
-            you pick the fallback order. Ollama sits last — a local fallback
-            for advice and planning when every cloud tool is blocked.
-          </p>
-        </div>
+        <p class="eyebrow">Supported tools</p>
+        <h2>Works with the tools you already use.</h2>
+        <p class="lede">
+          Nine tools supported today. keepitmovin detects what's installed;
+          you pick the fallback order. Ollama sits last — a local fallback
+          for advice and planning when every cloud tool is blocked.
+        </p>
       </div>
-      <div class="tools-grid" data-reveal>
+      <div class="tools-grid">
         {
           tools.map((tool) => (
             <a class="tool" href={tool.url} target="_blank" rel="noopener">
               <span class="tool-name">
+                {tool.icon ? (
+                  <svg viewBox="0 0 24 24" aria-hidden="true" width="18" height="18" fill="currentColor">
+                    <path d={tool.icon} />
+                  </svg>
+                ) : (
+                  <span class="ticker-mono">{tool.mono}</span>
+                )}
                 {tool.name}
                 {tool.tag && <span class="tool-tag">{tool.tag}</span>}
               </span>
@@ -233,41 +305,33 @@ const vs = [
     </div>
   </section>
 
-  <!-- 04 · Honest limitation -->
+  <!-- Honest limitation -->
   <section class="section">
     <div class="container">
-      <div class="section-head">
-        <span class="section-num">04</span>
-        <div class="pull">
-          <p>
-            When keepitmovin switches tools, the new tool starts a
-            <em>fresh session.</em>
-          </p>
-          <p class="pull-sub">
-            It gets the handoff file — your goal, decisions, and recent
-            changes — not the previous tool's private chat history. No coding
-            agent can transfer that today. That's the trade, stated plainly.
-          </p>
-        </div>
+      <div class="pull">
+        <p class="eyebrow">The trade, stated plainly</p>
+        <p>When keepitmovin switches tools, the new tool starts a fresh session.</p>
+        <p class="pull-sub">
+          It gets the handoff file — your goal, decisions, and recent
+          changes — not the previous tool's private chat history. No coding
+          agent can transfer that today. That's the trade, stated plainly.
+        </p>
       </div>
     </div>
   </section>
 
-  <!-- 05 · Pricing -->
+  <!-- Pricing -->
   <section class="section" id="pricing">
     <div class="container">
       <div class="section-head">
-        <span class="section-num">05</span>
-        <div>
-          <h2>Free where it runs. <em>Paid where it syncs.</em></h2>
-          <p class="lede">
-            The CLI is open source and free forever. The paid tiers are
-            early-access — join the waitlist and we'll bring you on as they
-            ship.
-          </p>
-        </div>
+        <p class="eyebrow">Pricing</p>
+        <h2>Free today. Help shape what comes next.</h2>
+        <p class="lede">
+          The CLI is open source and free forever. Join Pro early access to
+          tell us which continuity features are worth building.
+        </p>
       </div>
-      <div class="pricing" data-reveal>
+      <div class="pricing">
         <!-- Free -->
         <div class="price-card">
           <div class="price-head">
@@ -293,49 +357,37 @@ const vs = [
           <div class="price-head">
             <h3>Pro <span class="price-badge">coming soon</span></h3>
             <p class="price">
-              <span class="amount">~$9</span><span class="per"
-                >/mo · early access</span
-              >
+              <span class="amount">TBD</span><span class="per">early access</span>
             </p>
           </div>
-          <p class="price-tagline">Carry your handoffs across every machine.</p>
+          <p class="price-tagline">Shape the first paid features.</p>
           <ul class="price-features">
-            <li>Cloud handoff sync across machines</li>
-            <li>Cross-tool usage dashboard</li>
-            <li>Priority support</li>
+            <li>Direct input on the roadmap</li>
+            <li>Launch and research updates</li>
+            <li>First access when Pro is real</li>
             <li>Early access to new features</li>
           </ul>
           <div class="price-cta">
-            <a
-              class="price-btn"
-              href="mailto:garrett@garrettsiegel.com?subject=keepitmovin%20Pro%20waitlist"
-              >Join the waitlist</a
-            >
-          </div>
-        </div>
-
-        <!-- Team / Enterprise -->
-        <div class="price-card">
-          <div class="price-head">
-            <h3>Team / Enterprise</h3>
-            <p class="price"><span class="amount">Custom</span></p>
-          </div>
-          <p class="price-tagline">For orgs running agents at scale.</p>
-          <ul class="price-features">
-            <li>Shared handoff spaces</li>
-            <li>Org policies</li>
-            <li>SSO</li>
-            <li>SLA</li>
-          </ul>
-          <div class="price-cta">
-            <a
-              class="price-btn ghost"
-              href="mailto:garrett@garrettsiegel.com?subject=keepitmovin%20for%20teams"
-              >Talk to us</a
-            >
+            {
+              tallyConfigured ? (
+                <iframe
+                  class="tally-embed"
+                  src={`${tallyUrl}?transparentBackground=1`}
+                  title="Join the keepitmovin Pro early-access list"
+                  loading="lazy"
+                  height="360"
+                />
+              ) : (
+                <div class="waitlist-pending" role="status">
+                  <strong>Form setup pending</strong>
+                  <span>Set <code>PUBLIC_TALLY_WAITLIST_URL</code> to the published Tally form URL.</span>
+                </div>
+              )
+            }
           </div>
         </div>
       </div>
+      <p class="form-privacy">Tally processes waitlist responses. Vercel Analytics measures anonymous pageviews and referrers. <a href="/privacy">Privacy details →</a></p>
     </div>
   </section>
 </BaseLayout>

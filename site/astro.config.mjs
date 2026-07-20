@@ -1,9 +1,10 @@
 import { defineConfig } from "astro/config";
+import sitemap from "@astrojs/sitemap";
 
-// Domain-agnostic static build. When keepitmovin.dev goes live, set:
-//   site: "https://keepitmovin.dev",
-// so canonical URLs and the sitemap (if added later) resolve correctly.
-// No `base` is set — the site deploys at the domain root.
+// keepitmovin.dev is live; `site` makes canonical URLs, og:image, and the
+// sitemap resolve to absolute URLs. No `base` — the site deploys at the root.
 export default defineConfig({
-  output: "static"
+  site: "https://www.keepitmovin.dev",
+  output: "static",
+  integrations: [sitemap()]
 });

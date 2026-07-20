@@ -6,12 +6,12 @@ import DocsLayout from "../../layouts/DocsLayout.astro";
   title="Docs — keepitmovin"
   description="keepitmovin documentation: install, quickstart, the handoff file, supported tools, configuration, and FAQ."
 >
-  <p class="eyebrow">// docs</p>
+  <p class="eyebrow">Docs</p>
   <h1>keepitmovin docs</h1>
   <p>
     keepitmovin runs your coding agents in one terminal, watches for rate
-    limits, and hands off to the next tool with full context — so you never
-    stop mid-task. Run <code>kim</code> and a first-run wizard gets you
+    limits, and gives the next tool a structured handoff of the work. Run
+    <code>kim</code> and a first-run wizard gets you
     started. Zero config required.
   </p>
 
@@ -50,6 +50,7 @@ import DocsLayout from "../../layouts/DocsLayout.astro";
       <tr><td><code>kim doctor</code></td><td>Check your config, tool availability, and git context (<code>--all</code> for the full catalog).</td></tr>
       <tr><td><code>kim handoff</code></td><td>Show the current handoff file's path and a preview.</td></tr>
       <tr><td><code>kim session</code></td><td>Show a summary of the most recent session.</td></tr>
+      <tr><td><code>kim mcp</code></td><td>Serve, inspect, install, or remove the read-only local MCP integration.</td></tr>
       <tr><td><code>kim clear</code></td><td>Delete local handoff and session files (<code>--yes</code> to skip the confirmation).</td></tr>
     </tbody>
   </table>

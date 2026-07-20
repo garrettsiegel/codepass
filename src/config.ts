@@ -46,6 +46,10 @@ export const usageProbeSpecSchema = z.object({
   thresholdPercent: z.number().min(1).max(100).optional()
 });
 
+export const compactionProbeSpecSchema = z.object({
+  kind: z.enum(["claude-transcript", "codex-session-files"])
+});
+
 export const interactiveProviderConfigSchema = z.object({
   name: z.string().min(1),
   label: z.string().min(1),
@@ -59,7 +63,8 @@ export const interactiveProviderConfigSchema = z.object({
   controllable: z.boolean().optional(),
   fallbackOn: z.array(agentErrorTypeSchema).optional(),
   limitPatterns: z.array(z.string()).optional(),
-  usageProbe: usageProbeSpecSchema.optional()
+  usageProbe: usageProbeSpecSchema.optional(),
+  compactionProbe: compactionProbeSpecSchema.optional()
 });
 
 export const keepitmovinConfigSchema = z.object({
@@ -135,6 +140,10 @@ export const keepitmovinConfigSchema = z.object({
           minTranscriptGrowthChars: 2_000
         }
       }),
+    watchdog: z.object({
+      enabled: z.boolean().default(true),
+      action: z.literal("warn").default("warn")
+    }).default({ enabled: true, action: "warn" }),
     providers: z.array(interactiveProviderConfigSchema).default(getDefaultInteractiveProviders())
   }).default({
     setupComplete: false,
@@ -156,6 +165,7 @@ export const keepitmovinConfigSchema = z.object({
         minTranscriptGrowthChars: 2_000
       }
     },
+    watchdog: { enabled: true, action: "warn" },
     providers: getDefaultInteractiveProviders()
   })
 });

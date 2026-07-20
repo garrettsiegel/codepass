@@ -32,7 +32,24 @@ const harnessAttemptLogSchema = z.object({
   errorType: agentErrorTypeSchema.optional(),
   errorDetail: z.string().optional(),
   transcriptExcerpt: z.string(),
-  route: appliedRouteSchema.optional()
+  route: appliedRouteSchema.optional(),
+  handoffReceipt: z.object({
+    status: z.enum(["received", "missing", "not_applicable"]),
+    receivedAt: z.string().optional(),
+    restatedGoal: z.string().optional(),
+    nextAction: z.string().optional()
+  }).optional(),
+  compactionEvents: z.array(z.object({
+    provider: z.string(),
+    detectedAt: z.string(),
+    source: z.enum(["claude-transcript", "codex-session-files"])
+  })).optional(),
+  watchdogEvents: z.array(z.object({
+    type: z.enum(["loop", "burn", "stall"]),
+    provider: z.string(),
+    detectedAt: z.string(),
+    detail: z.string()
+  })).optional()
 });
 
 // Mirrors the HarnessSessionLog type. Session logs are read back from disk (where
@@ -80,6 +97,17 @@ export const writeSessionLog = async (
       ...attempt,
       args: attempt.args.map((arg) => redactSecrets(arg)),
       ...(attempt.errorDetail ? { errorDetail: redactSecrets(attempt.errorDetail) } : {}),
+      ...(attempt.handoffReceipt ? {
+        handoffReceipt: {
+          ...attempt.handoffReceipt,
+          ...(attempt.handoffReceipt.restatedGoal
+            ? { restatedGoal: redactSecrets(attempt.handoffReceipt.restatedGoal) }
+            : {}),
+          ...(attempt.handoffReceipt.nextAction
+            ? { nextAction: redactSecrets(attempt.handoffReceipt.nextAction) }
+            : {})
+        }
+      } : {}),
       transcriptExcerpt: redactSecrets(attempt.transcriptExcerpt)
     })),
     ...(log.task ? { task: redactSecrets(log.task) } : {})
@@ -112,5 +140,33 @@ export const readLatestSessionLog = async (
     return parsed.success ? parsed.data : undefined;
   } catch {
     return undefined;
+  }
+};
+
+export const readRecentSessionLogs = async (
+  cwd: string,
+  config: KeepitmovinConfig,
+  limit = 10
+): Promise<HarnessSessionLog[]> => {
+  const sessionsDir = resolveSessionsDir(cwd, config);
+  try {
+    const entries = (await readdir(sessionsDir))
+      .filter((entry) => entry.endsWith(".json"))
+      .sort()
+      .reverse();
+    const logs: HarnessSessionLog[] = [];
+    for (const entry of entries) {
+      if (logs.length >= Math.max(0, limit)) break;
+      try {
+        const raw = await readFile(path.join(sessionsDir, entry), "utf8");
+        const parsed = harnessSessionLogSchema.safeParse(JSON.parse(raw));
+        if (parsed.success) logs.push(parsed.data);
+      } catch {
+        // One corrupt summary must not hide the other valid sessions.
+      }
+    }
+    return logs;
+  } catch {
+    return [];
   }
 };

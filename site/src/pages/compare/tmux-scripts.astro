@@ -1,0 +1,15 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+---
+
+<BaseLayout title="keepitmovin vs. tmux and scripts" description="Compare terminal persistence with structured coding-agent handoffs.">
+  <article class="docs-content prose standalone-prose container">
+    <p class="eyebrow">Comparison</p><h1>keepitmovin vs. tmux and shell scripts</h1>
+    <p>tmux keeps a process alive when a terminal disconnects. Shell scripts can launch tools in sequence. Both are excellent building blocks, but neither tells the next agent what the previous agent decided.</p>
+    <h2>Different layers</h2>
+    <p>Use tmux for terminal persistence. Use keepitmovin for task continuity: failure detection, a live local handoff, provider ordering, and a visible switch.</p>
+    <h2>They work together</h2>
+    <p>Running keepitmovin inside tmux gives you both durable terminal access and structured cross-tool recovery.</p>
+    <p><a href="/docs/quickstart">Start a continuous session →</a></p>
+  </article>
+</BaseLayout>

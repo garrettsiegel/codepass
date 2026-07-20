@@ -43,6 +43,21 @@ export const runSessionCommand = async (options: CliOptions): Promise<void> => {
         `${placeholdersRemaining.length > 0 ? `, placeholders: ${placeholdersRemaining.join(", ")}` : ""}`
       );
     }
+    const receipts = latest.attempts.filter((attempt) => attempt.handoffReceipt?.status !== "not_applicable");
+    if (receipts.length > 0) {
+      const received = receipts.filter((attempt) => attempt.handoffReceipt?.status === "received").length;
+      console.log("Handoff receipts:", `${received}/${receipts.length} received`);
+    }
+    const compactions = latest.attempts.reduce(
+      (count, attempt) => count + (attempt.compactionEvents?.length ?? 0),
+      0
+    );
+    if (compactions > 0) console.log("Compactions recovered:", compactions);
+    const watchdogWarnings = latest.attempts.reduce(
+      (count, attempt) => count + (attempt.watchdogEvents?.length ?? 0),
+      0
+    );
+    if (watchdogWarnings > 0) console.log("Watchdog warnings:", watchdogWarnings);
     console.log("Log:", latest.sessionLogPath ?? "(unknown)");
   } catch (error) {
     console.error(chalk.red(error instanceof Error ? error.message : String(error)));

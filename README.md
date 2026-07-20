@@ -10,8 +10,8 @@
 ![keepitmovin automatically hands off from a rate-limited Claude Code to Codex, mid-task](https://raw.githubusercontent.com/garrettsiegel/keepitmovin/main/public/kim-demo.gif)
 
 **keepitmovin runs your AI coding tools in one terminal, in a fallback order you choose. When one
-hits its usage limit, keepitmovin hands the next tool a handoff file with your full context — so you
-never stop mid-task.** It works with Claude Code, Codex, Kimi CLI, Google Antigravity, opencode,
+hits its usage limit, keepitmovin hands the next tool a structured record of the goal, changes,
+blockers, and next step.** It works with Claude Code, Codex, Kimi CLI, Google Antigravity, opencode,
 Grok Build, Cursor Agent, GitHub Copilot CLI, and Ollama.
 
 If you've ever been deep in a task in Claude Code and hit your 5-hour limit, or realized partway
@@ -20,8 +20,7 @@ starting over. The new tool has no idea what you were doing.
 
 keepitmovin fixes that. It runs your coding tool in one terminal, watches for limits and failures,
 and when it's time to switch, it writes a shared "handoff" file — your goal, what's changed,
-what's blocked, what's next — and hands it to the next tool so you pick up exactly where you left
-off.
+what's blocked, what's next — and gives it to the next tool so it can resume from recorded state.
 
 ```sh
 kim
@@ -95,7 +94,11 @@ extra AI calls to do this, so it costs you nothing beyond what the tool would al
    failure — or a usage check shows the tool is near its limit (see below) — keepitmovin pauses it.
 7. keepitmovin adds a checkpoint to the handoff file, shows a short "switching tools" message
    explaining what happened, and starts the next tool with the handoff already loaded.
-8. keepitmovin writes a session summary and archives the handoff for the record.
+8. The receiving tool restates the goal and next action in a local handoff receipt. If no valid
+   receipt arrives within 60 seconds, keepitmovin warns and continues.
+9. If Claude or Codex compacts its context, keepitmovin detects the structured local event,
+   refreshes the handoff, and asks that same tool to reread it. Compaction never forces a switch.
+10. keepitmovin writes a session summary and archives the handoff for the record.
 
 You can also switch manually at any time:
 
@@ -167,6 +170,17 @@ first tool.
 Prompts passed through a tool's command-line prompt argument may be briefly visible to other local
 processes through the operating system's process list. Don't put credentials in task text.
 
+### Warning-only Watchdog
+
+keepitmovin warns when it sees three conservative signals: a substantial output block repeated
+three times in five minutes, Codex usage burn rising more than five times above the session's
+baseline, or output continuing for ten minutes without a project or handoff progress signal.
+These warnings are local telemetry only. They never switch or stop a tool.
+
+The watchdog defaults to `{ "enabled": true, "action": "warn" }` under `harness.watchdog`.
+`action` intentionally accepts only `"warn"`; automatic switching is not enabled until these
+signals have enough real-world evidence to justify it.
+
 ### The Handoff File
 
 `.keepitmovin/current/handoff.md` is the shared continuity layer between tools. Each tool owns the
@@ -233,6 +247,10 @@ locked in with tests. They're verified against reported messages, not against li
 | `kim doctor` | Check your config, tools, and git status (add `--all` to include tools that aren't verified yet). |
 | `kim handoff` | Show the current handoff file's path and a preview. |
 | `kim session` | Show a summary of your most recent session. |
+| `kim mcp status` | Show MCP capability and installation status for all supported tools. |
+| `kim mcp install` | Preview and install the read-only MCP entry user-wide. |
+| `kim mcp remove` | Preview and remove only keepitmovin-owned MCP entries. |
+| `kim mcp serve` | Start the read-only stdio MCP server (normally launched by a client). |
 | `kim clear` | Delete local handoff and session files (add `--yes` to skip the confirmation). |
 | `kim --help` | See every command and option. |
 
@@ -275,6 +293,19 @@ Everything keepitmovin writes lives under `.keepitmovin/` in your project's work
 ```
 
 Run `kim clear` any time you want to wipe these.
+
+## Read-only MCP Continuity
+
+`kim mcp serve` exposes the current sanitized handoff and up to ten recent session outcomes as
+MCP resources and read-only tools. It never exposes raw transcript excerpts and provides no write,
+shell, switch, or network operation. The active project comes from the MCP client's workspace roots,
+falling back to the process working directory.
+
+`kim mcp install` detects Claude Code, Codex, Cursor, current Kimi Code, Google Antigravity,
+OpenCode, Grok Build, and GitHub Copilot CLI. It previews user-wide changes and asks once before
+writing. Direct JSON edits get timestamped backups and atomic writes. Older Kimi releases are
+reported as `upgrade_required`; Ollama is reported as `unsupported` because it is a model runner,
+not an MCP client. keepitmovin never upgrades another tool on your behalf.
 
 ## Safety Defaults
 

@@ -27,6 +27,26 @@ export interface HandoffQuality {
   placeholdersRemaining: string[];
 }
 
+export interface HandoffReceiptLog {
+  status: "received" | "missing" | "not_applicable";
+  receivedAt?: string;
+  restatedGoal?: string;
+  nextAction?: string;
+}
+
+export interface CompactionEventLog {
+  provider: ProviderName;
+  detectedAt: string;
+  source: "claude-transcript" | "codex-session-files";
+}
+
+export interface WatchdogEventLog {
+  type: "loop" | "burn" | "stall";
+  provider: ProviderName;
+  detectedAt: string;
+  detail: string;
+}
+
 export type ProviderIntegrationType =
   | "pty"
   | "pty_with_bootstrap_input"
@@ -49,11 +69,16 @@ export type AgentErrorType =
 // How keepitmovin reads a tool's own local usage/limit state. Only one kind exists
 // today; widen UsageProbeKind to a union when another tool exposes headroom data.
 export type UsageProbeKind = "codex-session-files";
+export type CompactionProbeKind = "claude-transcript" | "codex-session-files";
 
 export interface UsageProbeSpec {
   kind: UsageProbeKind;
   // Overrides harness.usageProbe.thresholdPercent for this provider only.
   thresholdPercent?: number;
+}
+
+export interface CompactionProbeSpec {
+  kind: CompactionProbeKind;
 }
 
 export interface InteractiveProviderConfig {
@@ -75,6 +100,7 @@ export interface InteractiveProviderConfig {
   // Optional local-file usage probe (see usage-probe.ts). Absent for tools with
   // no readable headroom state (e.g. Claude Code today).
   usageProbe?: UsageProbeSpec;
+  compactionProbe?: CompactionProbeSpec;
 }
 
 export type KeepitmovinConfig = z.infer<typeof keepitmovinConfigSchema>;
@@ -103,6 +129,9 @@ export interface HarnessAttemptLog {
   errorDetail?: string;
   transcriptExcerpt: string;
   route?: AppliedRoute;
+  handoffReceipt?: HandoffReceiptLog;
+  compactionEvents?: CompactionEventLog[];
+  watchdogEvents?: WatchdogEventLog[];
 }
 
 export interface HarnessSessionLog {

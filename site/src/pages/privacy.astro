@@ -1,0 +1,36 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="Privacy — keepitmovin"
+  description="How the keepitmovin CLI and website handle data."
+>
+  <article class="docs-content prose standalone-prose container">
+    <p class="eyebrow">Trust</p>
+    <h1>Privacy</h1>
+    <p>
+      The keepitmovin CLI does not upload your handoff files, session summaries,
+      repository state, or terminal transcript. Those artifacts stay under
+      <code>.keepitmovin/</code> in the project where you run it.
+    </p>
+    <h2>Your coding tools</h2>
+    <p>
+      Claude Code, Codex, and the other tools launched by keepitmovin still
+      communicate with their own providers. Their privacy terms and account
+      settings continue to apply.
+    </p>
+    <h2>This website</h2>
+    <p>
+      Vercel Analytics records anonymous pageviews and referrers without cookies.
+      The Pro early-access form is provided by Tally; information you submit there
+      is used only for keepitmovin product research and launch updates.
+    </p>
+    <h2>Deletion and questions</h2>
+    <p>
+      Run <code>kim clear</code> to remove local keepitmovin artifacts. To remove a
+      waitlist response or ask a privacy question, email
+      <a href="mailto:garrett@garrettsiegel.com">garrett@garrettsiegel.com</a>.
+    </p>
+  </article>
+</BaseLayout>

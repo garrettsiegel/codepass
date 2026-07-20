@@ -28,6 +28,11 @@ const sampleLog = (): HarnessSessionLog => ({
       exitCode: 1,
       errorType: "rate_limit",
       transcriptExcerpt: "exported ANTHROPIC_API_KEY=sk-ant-api03-AbCdEf0123456789ghIJKlMnOp done",
+      handoffReceipt: {
+        status: "received",
+        restatedGoal: "Use sk-ant-api03-AbCdEf0123456789ghIJKlMnOp",
+        nextAction: "run tests"
+      },
       route: {
         tier: "standard",
         reason: "settled plan or known reproduction",

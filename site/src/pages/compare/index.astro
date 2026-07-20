@@ -1,0 +1,19 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+const comparisons = [
+  ["Copy and paste", "/compare/copy-paste", "A live handoff versus reconstructing context from memory."],
+  ["tmux and scripts", "/compare/tmux-scripts", "Session persistence versus task continuity across different tools."],
+  ["Context layers", "/compare/context-layers", "Coding-session recovery versus general personal memory products."],
+];
+---
+
+<BaseLayout title="Compare keepitmovin" description="Honest comparisons between keepitmovin and common continuity approaches.">
+  <article class="docs-content prose standalone-prose container">
+    <p class="eyebrow">Compare</p>
+    <h1>Choose the smallest continuity tool that solves your problem.</h1>
+    <p>keepitmovin is built for one narrow job: keeping a coding task moving when a terminal agent stops or needs to hand off.</p>
+    <div class="content-cards">
+      {comparisons.map(([title, href, body]) => <a class="content-card" href={href}><h2>{title}</h2><p>{body}</p></a>)}
+    </div>
+  </article>
+</BaseLayout>

@@ -1,0 +1,17 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+---
+
+<BaseLayout title="Switch from Claude Code to Codex mid-task" description="Move a live coding task from Claude Code to Codex without reconstructing context from memory.">
+  <article class="docs-content prose standalone-prose container">
+    <p class="eyebrow">Guide</p><h1>Switch from Claude Code to Codex mid-task</h1>
+    <p>The two tools do not share private chat state. A clean switch therefore depends on a project-owned handoff rather than a transcript export.</p>
+    <h2>Before switching</h2>
+    <p>Make sure the handoff names the current goal, settled decisions, changed files, commands and checks, blockers, and the next action. Do not commit unfinished work just to transfer it; both tools can inspect the same working tree.</p>
+    <h2>Make the handoff</h2>
+    <p>With keepitmovin, configure Claude before Codex and press <code>Ctrl+]</code>. Claude is stopped, repository state is refreshed, and Codex starts with the handoff path and a request to acknowledge the goal and next action.</p>
+    <h2>Verify receipt, not understanding</h2>
+    <p>A short machine-readable response confirms that Codex read and restated the handoff. It cannot prove semantic understanding, so keepitmovin reports “handoff received” and continues even when the receipt is missing.</p>
+    <p><a href="/docs/install">Install keepitmovin →</a></p>
+  </article>
+</BaseLayout>

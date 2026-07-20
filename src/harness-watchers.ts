@@ -1,6 +1,7 @@
 import chalk from "chalk";
-import type { HarnessAttemptLog, InteractiveProviderConfig, KeepitmovinConfig } from "./types.js";
-import { startHandoffWatcher } from "./handoff-refresh.js";
+import type { CompactionEventLog, HarnessAttemptLog, InteractiveProviderConfig, KeepitmovinConfig } from "./types.js";
+import { buildCompactionNudgeMessage, refreshHandoffFile, startHandoffWatcher } from "./handoff-refresh.js";
+import { startCompactionProbe, type CompactionProbeOptions } from "./compaction-probe.js";
 import {
   checkUsageThreshold,
   formatUsageProbeMessage,
@@ -60,6 +61,10 @@ export interface SessionWatcherContext {
   isSettled: () => boolean;
   writeToChild: (text: string) => void;
   onUsageLimit: (snapshot: UsageSnapshot) => void;
+  onUsageSample?: (snapshot: UsageSnapshot) => void;
+  startedAt: string;
+  compactionProbeOptions?: CompactionProbeOptions;
+  onCompaction: (event: CompactionEventLog) => void;
 }
 
 // Arms the usage-probe poller (when resolvedProbe is set) and the handoff
@@ -68,7 +73,28 @@ export const armSessionWatchers = (ctx: SessionWatcherContext): (() => void) => 
   const stops: Array<() => void> = [];
 
   if (ctx.resolvedProbe) {
-    stops.push(startUsageProbe(ctx.resolvedProbe, ctx.usageProbeOptions, ctx.onUsageLimit));
+    stops.push(startUsageProbe(
+      ctx.resolvedProbe,
+      ctx.usageProbeOptions,
+      ctx.onUsageLimit,
+      ctx.onUsageSample
+    ));
+  }
+
+  if (ctx.provider.compactionProbe) {
+    stops.push(startCompactionProbe({
+      provider: ctx.provider.name,
+      spec: ctx.provider.compactionProbe,
+      cwd: ctx.cwd,
+      startedAt: ctx.startedAt,
+      options: ctx.compactionProbeOptions,
+      onCompaction: async (event) => {
+        if (ctx.isSettled()) return;
+        await refreshHandoffFile(ctx.cwd, ctx.config, ctx.handoffPath);
+        ctx.writeToChild(buildCompactionNudgeMessage(ctx.handoffPath));
+        ctx.onCompaction(event);
+      }
+    }));
   }
 
   stops.push(

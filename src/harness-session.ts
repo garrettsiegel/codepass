@@ -3,11 +3,14 @@ import chalk from "chalk";
 import { createBootstrapWriter } from "./bootstrap-input.js";
 import type { AgentErrorType, AppliedRoute, HarnessAttemptLog, InteractiveProviderConfig, KeepitmovinConfig } from "./types.js";
 import { detectExitFailure, detectLiveFailure, getManualSwitchSequence } from "./failure-detection.js";
-import { formatCommandEcho, renderInteractiveLaunch } from "./interactive-provider.js";
-import type { PtyFactory, PtyProcess } from "./pty-factory.js";
+import { renderInteractiveLaunch } from "./interactive-provider.js";
+import type { PtyFactory } from "./pty-factory.js";
 import { RollingTranscript } from "./transcript.js";
-import { armSessionWatchers, preLaunchUsageGate } from "./harness-watchers.js";
+import { armSessionWatchers } from "./harness-watchers.js";
 import { formatUsageProbeMessage, resolveUsageProbe, type UsageProbeOptions } from "./usage-probe.js";
+import type { CompactionProbeOptions } from "./compaction-probe.js";
+import { createHarnessObservers } from "./harness-observers.js";
+import { startHarnessAttempt } from "./harness-attempt.js";
 /** Run one provider in a PTY until exit, manual switch, idle timeout, or limit. */
 export const waitForProvider = async (
   provider: InteractiveProviderConfig,
@@ -20,7 +23,8 @@ export const waitForProvider = async (
   ptyFactory: PtyFactory,
   input: NodeJS.ReadStream | undefined,
   output: NodeJS.WriteStream | undefined,
-  usageProbeOptions?: UsageProbeOptions
+  usageProbeOptions?: UsageProbeOptions,
+  compactionProbeOptions?: CompactionProbeOptions
 ): Promise<HarnessAttemptLog> => {
   const launch = renderInteractiveLaunch(provider, {
     cwd,
@@ -36,51 +40,31 @@ export const waitForProvider = async (
   let errorDetail: string | undefined;
   let settled = false;
   let lastActivityAt = Date.now();
-
   const resolvedProbe = resolveUsageProbe(provider, config);
-  const gated = await preLaunchUsageGate({
+  const start = await startHarnessAttempt({
     provider,
+    launch,
+    cwd,
+    startedAt,
+    route,
+    expectsReceipt: Boolean(handoffPrompt),
+    ptyFactory,
     resolvedProbe,
     usageProbeOptions,
-    command: launch.command,
-    commandArgs: launch.args,
-    startedAt,
     output
   });
-  if (gated) {
-    return { ...gated, ...(route ? { route } : {}) };
-  }
-
-  output?.write(chalk.cyan(`\nStarting ${provider.label}…\n`));
-  output?.write(chalk.gray(`Command: ${formatCommandEcho(launch.command, launch.args)}\n\n`));
-
-  let child: PtyProcess;
-
-  try {
-    child = ptyFactory(launch.command, launch.args, {
-      cwd,
-      env: process.env
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-
-    output?.write(chalk.yellow(`keepitmovin could not start ${provider.label}: ${message}\n`));
-
-    const missing =
-      message.toLowerCase().includes("not found") || message.toLowerCase().includes("enoent");
-    return {
-      provider: provider.name,
-      label: provider.label,
-      command: launch.command,
-      args: launch.args,
-      startedAt,
-      endedAt: new Date().toISOString(),
-      exitCode: 127,
-      errorType: missing ? "command_not_found" : "unknown",
-      transcriptExcerpt: message,
-      ...(route ? { route } : {})
-    };
-  }
+  if ("attempt" in start) return start.attempt;
+  const spawned = start.spawn();
+  if ("attempt" in spawned) return spawned.attempt;
+  const child = spawned.child;
+  const observers = createHarnessObservers({
+    provider,
+    config,
+    cwd,
+    handoffPath,
+    expectsReceipt: Boolean(handoffPrompt),
+    output
+  });
 
   const ignoreTexts = [handoffPrompt, sessionPrompt];
   const idleTimeoutMs = config.harness.idleTimeoutMs;
@@ -124,12 +108,14 @@ export const waitForProvider = async (
       settled = true;
       output?.write(chalk.yellow(`\n\n${errorDetail} Pausing this tool...\n`));
       child.kill();
-    }
+    },
+    onUsageSample: observers.observeUsage,
+    startedAt,
+    compactionProbeOptions,
+    onCompaction: observers.observeCompaction
   });
 
-  const onResize = (): void => {
-    child.resize?.(process.stdout.columns || 80, process.stdout.rows || 24);
-  };
+  const onResize = (): void => child.resize?.(process.stdout.columns || 80, process.stdout.rows || 24);
 
   const onAbort = (): void => {
     cleanup();
@@ -152,6 +138,7 @@ export const waitForProvider = async (
     cleaned = true;
     if (idleTimer) clearTimeout(idleTimer);
     bootstrap?.cancel();
+    observers.stop();
     stopWatchers();
     input?.off("data", onInput);
     input?.setRawMode?.(false);
@@ -162,6 +149,7 @@ export const waitForProvider = async (
 
   function onInput(chunk: Buffer): void {
     lastActivityAt = Date.now();
+    observers.observeProgress();
     armIdleTimer();
 
     if (chunk.toString("utf8").includes(manualSwitchSequence)) {
@@ -201,6 +189,8 @@ export const waitForProvider = async (
     child.onData((data) => {
       lastActivityAt = Date.now();
       transcript.append(data);
+      observers.receiptTracker.append(data);
+      observers.observeOutput(data);
       output?.write(data);
       armIdleTimer();
       bootstrap?.onChildData();
@@ -248,6 +238,9 @@ export const waitForProvider = async (
         errorType,
         errorDetail,
         transcriptExcerpt,
+        handoffReceipt: observers.receiptTracker.snapshot(),
+        ...(observers.compactionEvents.length > 0 ? { compactionEvents: observers.compactionEvents } : {}),
+        ...(observers.watchdogEvents.length > 0 ? { watchdogEvents: observers.watchdogEvents } : {}),
         ...(route ? { route } : {})
       });
     });

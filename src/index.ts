@@ -22,16 +22,32 @@ export {
   resolveProviderRoute
 } from "./model-routing.js";
 export { classifyTask, escalateTier, overrideTier } from "./routing.js";
-export { readLatestSessionLog, writeSessionLog } from "./session-log.js";
+export { readLatestSessionLog, readRecentSessionLogs, writeSessionLog } from "./session-log.js";
 export { applyProviderOrder, applyRoutingPreference, getSetupState, runSetupWizard } from "./setup.js";
 export { isRoutingRequested, resolveRouteForLaunch, resolveTaskForLaunch } from "./launch-routing.js";
 export { RollingTranscript } from "./transcript.js";
 export {
+  createHandoffReceiptTracker,
+  HANDOFF_RECEIPT_PREFIX,
+  HANDOFF_RECEIPT_TIMEOUT_MS,
+  parseHandoffReceiptLine
+} from "./handoff-receipt.js";
+export {
   buildNudgeMessage,
+  buildCompactionNudgeMessage,
+  getHandoffNarrativeSnapshot,
   refreshHandoffFile,
   replaceSection,
   startHandoffWatcher
 } from "./handoff-refresh.js";
+export { resolveCompactionProbeDir, startCompactionProbe } from "./compaction-probe.js";
+export type { CompactionProbeOptions } from "./compaction-probe.js";
+export { createWatchdogTracker } from "./watchdog.js";
+export { startWatchdogProgressProbe } from "./watchdog-progress.js";
+export { createKeepitmovinMcpServer, serveKeepitmovinMcp } from "./mcp-server.js";
+export { readMcpHandoff, readMcpSessionSummaries } from "./mcp-data.js";
+export { changeMcpInstallations, resolveMcpServerCommand } from "./mcp-installer.js";
+export { getMcpClientStatuses, MCP_CLIENTS } from "./mcp-clients.js";
 export {
   checkUsageThreshold,
   formatUsageProbeMessage,
@@ -70,6 +86,9 @@ export type {
   AppliedRoute,
   GitContext,
   HandoffQuality,
+  HandoffReceiptLog,
+  CompactionEventLog,
+  WatchdogEventLog,
   ProviderIntegrationType,
   ProviderName,
   ReasoningEffort,
@@ -77,6 +96,8 @@ export type {
   RoutingTier,
   SessionOutcome,
   KeepitmovinConfig,
+  CompactionProbeKind,
+  CompactionProbeSpec,
   UsageProbeKind,
   UsageProbeSpec
 } from "./types.js";

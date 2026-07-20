@@ -2,7 +2,6 @@ import { readdir, readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import type { KeepitmovinConfig, InteractiveProviderConfig, UsageProbeSpec } from "./types.js";
-
 // Snapshot of a tool's own reported usage, read from its local session files.
 export interface UsageSnapshot {
   // max(primary, secondary) — the number compared against the threshold.
@@ -26,7 +25,6 @@ interface RawWindow {
   window_minutes?: unknown;
   resets_in_seconds?: unknown;
 }
-
 const asNumber = (value: unknown): number | undefined =>
   typeof value === "number" && Number.isFinite(value) ? value : undefined;
 
@@ -45,7 +43,6 @@ const parseRateLimitLine = (line: string): Omit<UsageSnapshot, "sourceFile"> | u
   } catch {
     return undefined;
   }
-
   const payload = (parsed as { payload?: { type?: unknown; rate_limits?: unknown } })?.payload;
   if (!payload || payload.type !== "token_count") {
     return undefined;
@@ -207,7 +204,8 @@ export const checkUsageThreshold = async (
 export const startUsageProbe = (
   resolved: ResolvedUsageProbe,
   options: UsageProbeOptions | undefined,
-  onTrigger: (snapshot: UsageSnapshot) => void
+  onTrigger: (snapshot: UsageSnapshot) => void,
+  onSample?: (snapshot: UsageSnapshot) => void
 ): (() => void) => {
   let inFlight = false;
   let stopped = false;
@@ -216,12 +214,14 @@ export const startUsageProbe = (
       return;
     }
     inFlight = true;
-    void checkUsageThreshold(resolved, options)
+    void readProviderUsage(resolved.spec, options)
       .then((snapshot) => {
         if (snapshot && !stopped) {
-          onTrigger(snapshot);
+          onSample?.(snapshot);
+          if (snapshot.usedPercent >= resolved.thresholdPercent) onTrigger(snapshot);
         }
       })
+      .catch(() => undefined)
       .finally(() => {
         inFlight = false;
       });
