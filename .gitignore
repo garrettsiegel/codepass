@@ -31,7 +31,6 @@ pnpm-debug.log*
 # Internal planning/marketing docs kept out of the public repo
 marketing/
 BRAND.md
-CHANGELOG.md
 
 # Astro (nested site/) build cache
 .astro/
